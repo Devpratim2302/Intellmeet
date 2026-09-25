@@ -22,7 +22,18 @@ beforeEach(async () => {
   await User.deleteMany({});
 });
 
-describe('Authentication API', () => {
+describe('IntellMeet Foundation & Health API', () => {
+  it('GET /api/health should return a healthy status with service metadata', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('healthy');
+    expect(res.body.service).toBe('intellmeet-api');
+    expect(res.body.version).toBe('0.1.0');
+    expect(res.body.timestamp).toBeDefined();
+  });
+});
+
+describe('Authentication API (Development Block 1)', () => {
   const testUser = {
     name: 'Sarah Connor',
     email: 'sarah@intellmeet.io',
@@ -30,7 +41,7 @@ describe('Authentication API', () => {
   };
 
   describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
+    it('should successfully register a new user with hashed password and clean response', async () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send(testUser);
@@ -42,13 +53,16 @@ describe('Authentication API', () => {
       expect(res.body.data.accessToken).toBeDefined();
       expect(res.body.data.refreshToken).toBeDefined();
 
+      // Ensure password is never returned
+      expect(res.body.data.user.password).toBeUndefined();
+
       // Check DB
       const userInDb = await User.findOne({ email: testUser.email });
       expect(userInDb).not.toBeNull();
-      expect(userInDb?.password).not.toBe(testUser.password); // Should be hashed
+      expect(userInDb?.password).not.toBe(testUser.password); // Bcrypt hashed
     });
 
-    it('should reject registration if email is already taken', async () => {
+    it('should reject duplicate registration with 409 conflict', async () => {
       // First registration
       await request(app).post('/api/auth/register').send(testUser);
 
@@ -59,16 +73,17 @@ describe('Authentication API', () => {
       expect(res.body.message).toMatch(/already exists/i);
     });
 
-    it('should fail validation on weak or missing password', async () => {
+    it('should reject malformed requests (missing fields or weak password) with 400', async () => {
       const res = await request(app).post('/api/auth/register').send({
-        name: 'Invalid User',
-        email: 'invalid@example.com',
-        password: 'short', // less than 8 chars
+        name: 'S',
+        email: 'invalid-email-format',
+        password: 'short',
       });
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
       expect(res.body.errors).toBeDefined();
+      expect(res.body.errors.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -77,7 +92,7 @@ describe('Authentication API', () => {
       await request(app).post('/api/auth/register').send(testUser);
     });
 
-    it('should login successfully with valid credentials', async () => {
+    it('should successfully login with valid credentials and return tokens', async () => {
       const res = await request(app).post('/api/auth/login').send({
         email: testUser.email,
         password: testUser.password,
@@ -87,9 +102,10 @@ describe('Authentication API', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.accessToken).toBeDefined();
       expect(res.body.data.user.email).toBe(testUser.email);
+      expect(res.body.data.user.password).toBeUndefined();
     });
 
-    it('should reject login with incorrect password', async () => {
+    it('should reject login with invalid password with 401', async () => {
       const res = await request(app).post('/api/auth/login').send({
         email: testUser.email,
         password: 'WrongPassword999!',
@@ -100,7 +116,7 @@ describe('Authentication API', () => {
       expect(res.body.message).toMatch(/invalid email or password/i);
     });
 
-    it('should reject login with non-existent email', async () => {
+    it('should reject login with non-existent email with 401', async () => {
       const res = await request(app).post('/api/auth/login').send({
         email: 'ghost@example.com',
         password: 'Password123!',
@@ -111,8 +127,8 @@ describe('Authentication API', () => {
     });
   });
 
-  describe('GET /api/auth/me', () => {
-    it('should return user profile when authenticated with valid token', async () => {
+  describe('GET /api/auth/me (Protected Route)', () => {
+    it('should return safe user profile when authenticated with valid token', async () => {
       const regRes = await request(app).post('/api/auth/register').send(testUser);
       const token = regRes.body.data.accessToken;
 
@@ -123,12 +139,25 @@ describe('Authentication API', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.user.email).toBe(testUser.email);
+      expect(res.body.data.user.id).toBeDefined();
+      expect(res.body.data.user.password).toBeUndefined();
     });
 
-    it('should reject access without token', async () => {
+    it('should reject access to protected route without token with 401', async () => {
       const res = await request(app).get('/api/auth/me');
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/token required/i);
+    });
+
+    it('should reject access with invalid or malformed token with 401', async () => {
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', 'Bearer invalid_malformed_token_xyz');
+
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toMatch(/invalid or malformed/i);
     });
   });
 

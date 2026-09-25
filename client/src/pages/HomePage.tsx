@@ -1,12 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {
-  ShieldCheck,
-  ArrowRight,
-  Bot,
-  Users,
-} from 'lucide-react';
+import { ShieldCheck, ArrowRight, Bot, Users } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -35,8 +30,7 @@ export const HomePage: React.FC = () => {
 
         <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
           IntellMeet unifies enterprise HD video conferencing, real-time speech
-          transcription, automated summarization, and collaborative task
-          execution.
+          transcription, automated summarization, and collaborative task execution.
         </p>
 
         {/* CTA Buttons */}
@@ -87,8 +81,8 @@ export const HomePage: React.FC = () => {
             </div>
             <h2 className="text-lg font-bold text-white mb-2">AI Intelligence</h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Automated speech-to-text transcription, AI summaries, and smart
-              action item extraction scheduled for Phase 5 & 6.
+              Automated speech-to-text transcription, AI summaries, and smart action item
+              extraction scheduled for Phase 5 & 6.
             </p>
           </div>
 
@@ -98,8 +92,8 @@ export const HomePage: React.FC = () => {
             </div>
             <h2 className="text-lg font-bold text-white mb-2">Team Workspaces</h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Built for engineering and product teams with shared rooms,
-              presence, meeting transcripts, and action logs.
+              Built for engineering and product teams with shared rooms, presence, meeting
+              transcripts, and action logs.
             </p>
           </div>
         </div>

@@ -46,7 +46,11 @@ export const Navbar: React.FC = () => {
               {/* User badge */}
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                 <div className="w-7 h-7 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center text-xs font-bold text-brand-300">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
+                  {user?.name ? (
+                    user.name.charAt(0).toUpperCase()
+                  ) : (
+                    <User className="w-3.5 h-3.5" />
+                  )}
                 </div>
                 <div className="hidden md:flex flex-col text-left">
                   <span className="text-xs font-semibold text-white leading-tight">

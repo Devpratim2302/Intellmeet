@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import {
-  User,
-  Shield,
-  Video,
-  Bot,
-  CheckCircle,
-  Activity,
-  Layers,
-} from 'lucide-react';
+import { User, Shield, Video, Bot, CheckCircle, Activity, Layers } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -180,9 +172,7 @@ export const DashboardPage: React.FC = () => {
               </span>
               <Video className="w-4 h-4 text-slate-400" />
             </div>
-            <h3 className="text-base font-bold text-white mb-1">
-              Frontend Meeting UI
-            </h3>
+            <h3 className="text-base font-bold text-white mb-1">Frontend Meeting UI</h3>
             <p className="text-xs text-slate-400">
               Video grid, controls (mute/unmute, camera toggle), device selection.
             </p>
