@@ -2,22 +2,27 @@ import http from 'http';
 import { createApp } from './app.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { config } from './config/env.js';
+import { initSocketServer } from './sockets/index.js';
 
 const startServer = async () => {
   try {
     // 1. Connect to MongoDB
     await connectDB();
 
-    // 2. Initialize Express application
+    // 2. Initialize Express application & HTTP server
     const app = createApp();
     const server = http.createServer(app);
 
-    // 3. Start listening
+    // 3. Initialize Socket.io Server with WebRTC signaling
+    initSocketServer(server);
+
+    // 4. Start listening
     server.listen(config.port, () => {
       console.log(`===============================================`);
       console.log(`🚀 IntellMeet Server running in ${config.nodeEnv} mode`);
       console.log(`📡 URL: http://localhost:${config.port}`);
       console.log(`🛡️  Health: http://localhost:${config.port}/api/health`);
+      console.log(`⚡ Socket.io: Connected & WebRTC signaling ready`);
       console.log(`===============================================`);
     });
 

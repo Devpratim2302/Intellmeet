@@ -36,10 +36,17 @@ export const Navbar: React.FC = () => {
           {isAuthenticated ? (
             <div className="flex items-center space-x-4">
               <Link
+                to="/meetings"
+                className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                <Video className="w-4 h-4 text-brand-400" />
+                <span className="hidden sm:inline">Meetings</span>
+              </Link>
+              <Link
                 to="/dashboard"
                 className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
               >
-                <LayoutDashboard className="w-4 h-4 text-brand-400" />
+                <LayoutDashboard className="w-4 h-4 text-slate-400" />
                 <span className="hidden sm:inline">Workspace</span>
               </Link>
 
