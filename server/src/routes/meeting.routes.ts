@@ -7,9 +7,14 @@ import {
   deleteMeeting,
 } from '../controllers/meeting.controller.js';
 import {
+  getMeetingMessages,
+  createMeetingMessage,
+} from '../controllers/message.controller.js';
+import {
   createMeetingSchema,
   updateMeetingSchema,
 } from '../validators/meeting.validator.js';
+import { createMessageSchema } from '../validators/message.validator.js';
 import { validateRequest } from '../validators/auth.validator.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 
@@ -24,4 +29,9 @@ router.get('/:id', getMeeting);
 router.patch('/:id', validateRequest(updateMeetingSchema), updateMeeting);
 router.delete('/:id', deleteMeeting);
 
+// Meeting chat message routes
+router.get('/:id/messages', getMeetingMessages);
+router.post('/:id/messages', validateRequest(createMessageSchema), createMeetingMessage);
+
 export default router;
+

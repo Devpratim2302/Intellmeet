@@ -6,7 +6,8 @@ import { meetingApi } from '../services/meeting.api';
 import { VideoTile } from '../components/meeting/VideoTile';
 import { MeetingControls } from '../components/meeting/MeetingControls';
 import { ParticipantList } from '../components/meeting/ParticipantList';
-import { Copy, Check, Clock, Activity, Terminal } from 'lucide-react';
+import { ChatPanel } from '../components/meeting/ChatPanel';
+import { Copy, Check, Clock, Activity, Terminal, Monitor } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -17,6 +18,7 @@ export const MeetingRoomPage: React.FC = () => {
   const [meetingHostId, setMeetingHostId] = useState<string | undefined>();
   const [copied, setCopied] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -57,9 +59,18 @@ export const MeetingRoomPage: React.FC = () => {
     isConnected,
     isAudioMuted,
     isVideoDisabled,
+    isScreenSharing,
+    activeScreenSharePeerId,
+    isSpeaking,
     signalingLogs,
+    messages,
+    unreadCount,
     toggleAudio,
     toggleVideo,
+    startScreenShare,
+    stopScreenShare,
+    sendMessage,
+    resetUnreadCount,
   } = useWebRTC(roomId);
 
   const handleCopyLink = () => {
@@ -72,7 +83,48 @@ export const MeetingRoomPage: React.FC = () => {
     navigate('/dashboard');
   };
 
-  // Determine grid layout based on number of active video feeds (local + remote)
+  const handleToggleChat = () => {
+    const nextState = !isChatOpen;
+    setIsChatOpen(nextState);
+    if (nextState) {
+      resetUnreadCount();
+      setIsParticipantsOpen(false); // Close participants when opening chat on smaller screens
+    }
+  };
+
+  const handleToggleParticipants = () => {
+    const nextState = !isParticipantsOpen;
+    setIsParticipantsOpen(nextState);
+    if (nextState) {
+      setIsChatOpen(false); // Close chat when opening participants on smaller screens
+    }
+  };
+
+  const handleToggleScreenShare = () => {
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      startScreenShare();
+    }
+  };
+
+  // Determine if anyone in the call is currently presenting
+  const isSomeoneSharing = isScreenSharing || !!activeScreenSharePeerId;
+
+  // Find presenter information
+  const presenter = isScreenSharing
+    ? { isLocal: true, name: user?.name || 'You', stream: localStream }
+    : activeScreenSharePeerId
+      ? {
+          isLocal: false,
+          name:
+            participants.find((p) => p.socketId === activeScreenSharePeerId)?.name ||
+            'Presenter',
+          stream: remotePeers.find((p) => p.socketId === activeScreenSharePeerId)?.stream || null,
+        }
+      : null;
+
+  // Determine grid layout based on number of active video feeds
   const totalTiles = 1 + remotePeers.length;
   const getGridClass = () => {
     if (totalTiles === 1) return 'grid-cols-1 max-w-3xl mx-auto w-full';
@@ -102,6 +154,14 @@ export const MeetingRoomPage: React.FC = () => {
             <span className="text-xs text-slate-500 font-mono">|</span>
             <span className="text-xs text-slate-400 font-mono">{roomId}</span>
           </div>
+
+          {/* Active Screen Share Notice in Header */}
+          {isSomeoneSharing && (
+            <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs">
+              <Monitor className="w-3.5 h-3.5" />
+              <span>{presenter?.name} is sharing screen</span>
+            </div>
+          )}
 
           <button
             onClick={handleCopyLink}
@@ -144,43 +204,106 @@ export const MeetingRoomPage: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Body: Video Area + Optional Drawers */}
+      {/* Main Body: Video Area + Drawers */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Main Video Grid */}
-        <main className="flex-1 p-4 sm:p-6 overflow-y-auto flex items-center justify-center">
-          <div className={`grid gap-4 ${getGridClass()}`}>
-            {/* Local Video Tile */}
-            <VideoTile
-              stream={localStream}
-              name={user?.name || 'You'}
-              isLocal={true}
-              isMuted={isAudioMuted}
-              isVideoOff={isVideoDisabled}
-              tag="You"
-            />
-
-            {/* Remote Peer Video Tiles */}
-            {remotePeers.map((peer) => {
-              const matchedParticipant = participants.find(
-                (p) => p.socketId === peer.socketId
-              );
-              const peerName =
-                matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`;
-
-              return (
+        {/* Main Video Area */}
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto flex flex-col justify-center">
+          {/* PRESENTATION SPOTLIGHT MODE (When Screen Share is Active) */}
+          {isSomeoneSharing && presenter ? (
+            <div className="flex-1 flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto w-full h-full max-h-[calc(100vh-170px)]">
+              {/* Featured Presentation Screen Tile */}
+              <div className="flex-1 flex items-center justify-center min-h-[300px]">
                 <VideoTile
-                  key={peer.socketId}
-                  stream={peer.stream}
-                  name={peerName}
-                  isLocal={false}
-                  tag="Remote"
+                  stream={presenter.stream}
+                  name={`${presenter.name}'s Presentation`}
+                  isLocal={presenter.isLocal}
+                  isMuted={presenter.isLocal ? isAudioMuted : false}
+                  isVideoOff={false}
+                  isScreenSharing={true}
+                  className="w-full h-full max-h-[calc(100vh-190px)] object-contain shadow-2xl"
                 />
-              );
-            })}
-          </div>
+              </div>
+
+              {/* Side Strip of Camera Feeds */}
+              <div className="lg:w-72 flex lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto shrink-0 pb-2">
+                {/* Local camera feed */}
+                <div className="w-48 lg:w-full shrink-0">
+                  <VideoTile
+                    stream={localStream}
+                    name={user?.name || 'You'}
+                    isLocal={true}
+                    isMuted={isAudioMuted}
+                    isVideoOff={isVideoDisabled}
+                    isSpeaking={isSpeaking}
+                    tag="You"
+                  />
+                </div>
+
+                {/* Remote peer feeds */}
+                {remotePeers.map((peer) => {
+                  const matchedParticipant = participants.find(
+                    (p) => p.socketId === peer.socketId
+                  );
+                  const peerName =
+                    matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`;
+
+                  return (
+                    <div key={peer.socketId} className="w-48 lg:w-full shrink-0">
+                      <VideoTile
+                        stream={peer.stream}
+                        name={peerName}
+                        isLocal={false}
+                        isMuted={matchedParticipant?.isMuted}
+                        isVideoOff={matchedParticipant?.isVideoOff}
+                        isSpeaking={matchedParticipant?.isSpeaking}
+                        tag="Remote"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* STANDARD GRID MODE (When No Screen Share is Active) */
+            <div className={`grid gap-4 ${getGridClass()}`}>
+              {/* Local Video Tile */}
+              <VideoTile
+                stream={localStream}
+                name={user?.name || 'You'}
+                isLocal={true}
+                isMuted={isAudioMuted}
+                isVideoOff={isVideoDisabled}
+                isSpeaking={isSpeaking}
+                tag="You"
+              />
+
+              {/* Remote Peer Video Tiles */}
+              {remotePeers.map((peer) => {
+                const matchedParticipant = participants.find(
+                  (p) => p.socketId === peer.socketId
+                );
+                const peerName =
+                  matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`;
+
+                return (
+                  <VideoTile
+                    key={peer.socketId}
+                    stream={peer.stream}
+                    name={peerName}
+                    isLocal={false}
+                    isMuted={matchedParticipant?.isMuted}
+                    isVideoOff={matchedParticipant?.isVideoOff}
+                    isSpeaking={matchedParticipant?.isSpeaking}
+                    isScreenSharing={matchedParticipant?.isScreenSharing}
+                    tag="Remote"
+                  />
+                );
+              })}
+            </div>
+          )}
 
           {/* Empty Peer Hint when waiting */}
-          {remotePeers.length === 0 && (
+          {remotePeers.length === 0 && !isSomeoneSharing && (
             <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 text-xs text-slate-400 flex items-center gap-2 pointer-events-none">
               <Activity className="w-4 h-4 text-brand-400 animate-pulse" />
               <span>
@@ -192,7 +315,7 @@ export const MeetingRoomPage: React.FC = () => {
 
         {/* Signaling Inspector Drawer */}
         {showLogs && (
-          <aside className="w-80 h-full glass-panel border-l border-white/10 p-4 flex flex-col bg-dark-900/95 backdrop-blur-xl z-20">
+          <aside className="w-80 h-full glass-panel border-l border-white/10 p-4 flex flex-col bg-dark-900/95 backdrop-blur-xl z-20 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
                 <Terminal className="w-3.5 h-3.5 text-indigo-400" />
@@ -246,6 +369,18 @@ export const MeetingRoomPage: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Real-Time Meeting Chat Drawer */}
+        {isChatOpen && (
+          <div className="z-20">
+            <ChatPanel
+              messages={messages}
+              currentUserId={user?.id}
+              onSendMessage={sendMessage}
+              onClose={() => setIsChatOpen(false)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Bottom Floating Control Bar */}
@@ -253,11 +388,17 @@ export const MeetingRoomPage: React.FC = () => {
         <MeetingControls
           isMuted={isAudioMuted}
           isVideoOff={isVideoDisabled}
+          isScreenSharing={isScreenSharing}
+          isSpeaking={isSpeaking}
           isParticipantsOpen={isParticipantsOpen}
+          isChatOpen={isChatOpen}
           participantCount={participants.length}
+          unreadCount={unreadCount}
           onToggleAudio={toggleAudio}
           onToggleVideo={toggleVideo}
-          onToggleParticipants={() => setIsParticipantsOpen(!isParticipantsOpen)}
+          onToggleScreenShare={handleToggleScreenShare}
+          onToggleParticipants={handleToggleParticipants}
+          onToggleChat={handleToggleChat}
           onLeave={handleLeave}
         />
       </footer>

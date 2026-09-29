@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { socketService } from '../services/socket.service';
-import { RoomParticipant, SignalingLog } from '../types/meeting.types';
+import { mediaService } from '../services/media.service';
+import { meetingApi } from '../services/meeting.api';
+import { RoomParticipant, SignalingLog, ChatMessage } from '../types/meeting.types';
 
 // Standard public STUN servers for local/NAT traversal
 const ICE_SERVERS: RTCConfiguration = {
@@ -23,11 +25,22 @@ export const useWebRTC = (roomId: string) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(false);
   const [isVideoDisabled, setIsVideoDisabled] = useState<boolean>(false);
+  const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
+  const [activeScreenSharePeerId, setActiveScreenSharePeerId] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [signalingLogs, setSignalingLogs] = useState<SignalingLog[]>([]);
 
-  // Refs for state that event listeners need access to immediately
+  // Meeting Chat State
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  // Refs for immediate access inside event callbacks
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const isAudioMutedRef = useRef<boolean>(false);
+  const isVideoDisabledRef = useRef<boolean>(false);
 
   const addLog = useCallback(
     (type: SignalingLog['type'], message: string, peerId?: string) => {
@@ -44,76 +57,23 @@ export const useWebRTC = (roomId: string) => {
   );
 
   /**
-   * Initializes local user media stream (or synthetic fallback)
+   * Initializes local user media stream using isolated MediaService
    */
   const initLocalStream = useCallback(async (): Promise<MediaStream> => {
-    if (localStreamRef.current) {
-      return localStreamRef.current;
+    if (cameraStreamRef.current) {
+      return cameraStreamRef.current;
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      addLog('info', 'Local camera and microphone stream acquired');
-      return stream;
-    } catch (err: any) {
-      console.warn(
-        'Real camera/mic unavailable. Creating synthetic media track for signaling test:',
-        err
-      );
-      // Fallback: create synthetic canvas video track + silent audio track for testing in virtual or permission-denied environments
-      const canvas = document.createElement('canvas');
-      canvas.width = 640;
-      canvas.height = 480;
-      const ctx = canvas.getContext('2d')!;
-      let hue = 0;
-      const drawInterval = setInterval(() => {
-        ctx.fillStyle = `hsl(${hue}, 60%, 25%)`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '24px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('IntellMeet Test Camera', canvas.width / 2, canvas.height / 2 - 20);
-        ctx.font = '16px Inter, sans-serif';
-        ctx.fillText(
-          new Date().toLocaleTimeString(),
-          canvas.width / 2,
-          canvas.height / 2 + 20
-        );
-        hue = (hue + 1) % 360;
-      }, 100);
+    const stream = await mediaService.getUserMedia({
+      video: true,
+      audio: true,
+    });
 
-      const canvasStream = canvas.captureStream(30);
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      gain.gain.value = 0.0001; // virtually silent
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      const audioDest = audioCtx.createMediaStreamDestination();
-      osc.connect(audioDest);
-      osc.start();
-
-      const combinedStream = new MediaStream([
-        canvasStream.getVideoTracks()[0],
-        audioDest.stream.getAudioTracks()[0],
-      ]);
-
-      (combinedStream as any)._cleanup = () => {
-        clearInterval(drawInterval);
-        osc.stop();
-        audioCtx.close();
-      };
-
-      localStreamRef.current = combinedStream;
-      setLocalStream(combinedStream);
-      addLog('info', 'Synthetic media stream generated for WebRTC testing');
-      return combinedStream;
-    }
+    cameraStreamRef.current = stream;
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    addLog('info', 'Local media stream acquired');
+    return stream;
   }, [addLog]);
 
   /**
@@ -121,7 +81,6 @@ export const useWebRTC = (roomId: string) => {
    */
   const createPeerConnection = useCallback(
     (targetSocketId: string, stream: MediaStream): RTCPeerConnection => {
-      // Return existing connection if present
       if (peerConnections.current.has(targetSocketId)) {
         return peerConnections.current.get(targetSocketId)!;
       }
@@ -129,7 +88,7 @@ export const useWebRTC = (roomId: string) => {
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnections.current.set(targetSocketId, pc);
 
-      // Add all local tracks to the connection
+      // Add all tracks of active stream (camera or screen share)
       stream.getTracks().forEach((track) => {
         pc.addTrack(track, stream);
       });
@@ -197,19 +156,229 @@ export const useWebRTC = (roomId: string) => {
   }, []);
 
   /**
-   * Main WebRTC & Socket lifecycle
+   * Stops screen sharing and restores camera stream
+   */
+  const stopScreenShare = useCallback(() => {
+    if (!screenStreamRef.current) return;
+
+    mediaService.stopMediaStream(screenStreamRef.current);
+    screenStreamRef.current = null;
+    setIsScreenSharing(false);
+
+    // Restore camera video track on all peer connections
+    if (cameraStreamRef.current) {
+      const cameraVideoTrack = cameraStreamRef.current.getVideoTracks()[0];
+      if (cameraVideoTrack) {
+        mediaService.replaceVideoTrack(peerConnections.current, cameraVideoTrack);
+      }
+      localStreamRef.current = cameraStreamRef.current;
+      setLocalStream(cameraStreamRef.current);
+    }
+
+    // Notify other peers via socket
+    const socket = socketService.getSocket();
+    if (socket?.connected && roomId) {
+      socket.emit('participant-state-update', {
+        roomId,
+        isScreenSharing: false,
+      });
+      socket.emit('screen-share-toggle', {
+        roomId,
+        isSharing: false,
+      });
+    }
+
+    addLog('info', 'Screen sharing stopped; restored camera stream');
+  }, [roomId, addLog]);
+
+  /**
+   * Starts screen sharing using WebRTC track replacement
+   */
+  const startScreenShare = useCallback(async () => {
+    if (isScreenSharing) return;
+
+    try {
+      const screenStream = await mediaService.getDisplayMedia();
+      screenStreamRef.current = screenStream;
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
+
+      if (!screenVideoTrack) {
+        throw new Error('No video track found in screen capture stream');
+      }
+
+      // Handle user stopping screen share via browser floating bar
+      screenVideoTrack.onended = () => {
+        stopScreenShare();
+      };
+
+      // Hot-swap video track across all active RTCPeerConnections
+      mediaService.replaceVideoTrack(peerConnections.current, screenVideoTrack);
+
+      // Create local preview stream combining screen video + camera audio
+      const audioTracks = cameraStreamRef.current?.getAudioTracks() || [];
+      const combined = new MediaStream([screenVideoTrack, ...audioTracks]);
+      localStreamRef.current = combined;
+      setLocalStream(combined);
+      setIsScreenSharing(true);
+
+      // Notify other participants via Socket.io
+      const socket = socketService.getSocket();
+      if (socket?.connected && roomId) {
+        socket.emit('participant-state-update', {
+          roomId,
+          isScreenSharing: true,
+        });
+        socket.emit('screen-share-toggle', {
+          roomId,
+          isSharing: true,
+        });
+      }
+
+      addLog('info', 'Started screen sharing with WebRTC track replacement');
+    } catch (err: any) {
+      if (err.name !== 'NotAllowedError') {
+        console.error('[WebRTC] Failed to start screen sharing:', err);
+        addLog('info', `Screen sharing error: ${err.message}`);
+      }
+    }
+  }, [isScreenSharing, roomId, stopScreenShare, addLog]);
+
+  /**
+   * Toggles local microphone state and synchronizes with presence
+   */
+  const toggleAudio = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+        const newMuted = !track.enabled;
+        isAudioMutedRef.current = newMuted;
+        setIsAudioMuted(newMuted);
+
+        // Synchronize state with presence server
+        const socket = socketService.getSocket();
+        if (socket?.connected && roomId) {
+          socket.emit('participant-state-update', {
+            roomId,
+            isMuted: newMuted,
+          });
+        }
+      });
+    }
+  }, [roomId]);
+
+  /**
+   * Toggles local camera state and synchronizes with presence
+   */
+  const toggleVideo = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getVideoTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+        const newDisabled = !track.enabled;
+        isVideoDisabledRef.current = newDisabled;
+        setIsVideoDisabled(newDisabled);
+
+        // Synchronize state with presence server
+        const socket = socketService.getSocket();
+        if (socket?.connected && roomId) {
+          socket.emit('participant-state-update', {
+            roomId,
+            isVideoOff: newDisabled,
+          });
+        }
+      });
+    }
+  }, [roomId]);
+
+  /**
+   * Sends a chat message via Socket.io with fallback to REST API
+   */
+  const sendMessage = useCallback(
+    async (content: string): Promise<ChatMessage> => {
+      const trimmed = content.trim();
+      if (!trimmed) {
+        throw new Error('Message cannot be empty');
+      }
+      if (trimmed.length > 2000) {
+        throw new Error('Message cannot exceed 2000 characters');
+      }
+
+      const socket = socketService.getSocket();
+
+      return new Promise<ChatMessage>((resolve, reject) => {
+        if (socket && socket.connected) {
+          socket.emit(
+            'chat-message',
+            { roomId, content: trimmed },
+            (response: any) => {
+              if (response?.success) {
+                resolve(response.data);
+              } else {
+                // If socket response returned error, try fallback REST endpoint
+                meetingApi
+                  .sendMeetingMessage(roomId, trimmed)
+                  .then(resolve)
+                  .catch(reject);
+              }
+            }
+          );
+        } else {
+          meetingApi
+            .sendMeetingMessage(roomId, trimmed)
+            .then(resolve)
+            .catch(reject);
+        }
+      });
+    },
+    [roomId]
+  );
+
+  /**
+   * Resets unread chat badge count (e.g., when chat drawer is opened)
+   */
+  const resetUnreadCount = useCallback(() => {
+    setUnreadCount(0);
+  }, []);
+
+  /**
+   * Main WebRTC, Socket, Voice Detection, and Chat lifecycle
    */
   useEffect(() => {
     if (!roomId) return;
 
     let mounted = true;
+    let vadCleanup = () => {};
     const socket = socketService.connect();
+
+    // 0. Load persistent previous messages when joining
+    meetingApi
+      .getMeetingMessages(roomId)
+      .then((history) => {
+        if (mounted) {
+          setMessages(history);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Chat] Could not load message history:', err.message);
+      });
 
     const setup = async () => {
       const stream = await initLocalStream();
       if (!mounted) return;
 
-      // Join the meeting room
+      // Setup local Voice Activity Detection (VAD)
+      vadCleanup = mediaService.setupVoiceActivityDetection(stream, (speaking) => {
+        if (!mounted) return;
+        setIsSpeaking(speaking);
+
+        if (socket?.connected) {
+          socket.emit('participant-state-update', {
+            roomId,
+            isSpeaking: speaking,
+          });
+        }
+      });
+
+      // Join the meeting room with initial media state
       try {
         await socketService.joinMeeting(roomId);
         setIsConnected(true);
@@ -219,14 +388,19 @@ export const useWebRTC = (roomId: string) => {
       }
 
       /**
-       * 1. Room participants list received (we are the joining peer)
-       * We initiate offers to all peers already present in the room
+       * 1. Room participants list received upon joining
        */
       socket.on(
         'meeting-participants',
         async (data: { roomId: string; participants: RoomParticipant[] }) => {
           if (!mounted) return;
           setParticipants(data.participants);
+
+          // Check if any participant is currently screen sharing
+          const sharingPeer = data.participants.find((p) => p.isScreenSharing);
+          if (sharingPeer) {
+            setActiveScreenSharePeerId(sharingPeer.socketId);
+          }
 
           // For each other participant, create peer connection and send offer
           for (const peer of data.participants) {
@@ -237,7 +411,8 @@ export const useWebRTC = (roomId: string) => {
               `Initiating WebRTC offer to peer ${peer.name}`,
               peer.socketId
             );
-            const pc = createPeerConnection(peer.socketId, stream);
+            const activeStream = localStreamRef.current || stream;
+            const pc = createPeerConnection(peer.socketId, activeStream);
 
             try {
               const offer = await pc.createOffer();
@@ -271,7 +446,55 @@ export const useWebRTC = (roomId: string) => {
       );
 
       /**
-       * 3. Received WebRTC Offer from an incoming peer
+       * 3. Synchronize participant state (mic, camera, screen share, speaking)
+       */
+      socket.on('participant-state-changed', (data: any) => {
+        if (!mounted) return;
+        setParticipants((prev) =>
+          prev.map((p) => {
+            if (p.socketId === data.socketId || p.userId === data.userId) {
+              return {
+                ...p,
+                isMuted: data.isMuted !== undefined ? data.isMuted : p.isMuted,
+                isVideoOff: data.isVideoOff !== undefined ? data.isVideoOff : p.isVideoOff,
+                isScreenSharing:
+                  data.isScreenSharing !== undefined
+                    ? data.isScreenSharing
+                    : p.isScreenSharing,
+                isSpeaking:
+                  data.isSpeaking !== undefined ? data.isSpeaking : p.isSpeaking,
+              };
+            }
+            return p;
+          })
+        );
+
+        if (data.isScreenSharing !== undefined) {
+          if (data.isScreenSharing) {
+            setActiveScreenSharePeerId(data.socketId);
+            addLog('info', `${data.name || 'A participant'} started screen sharing`, data.socketId);
+          } else {
+            setActiveScreenSharePeerId((prev) => (prev === data.socketId ? null : prev));
+            addLog('info', `${data.name || 'A participant'} stopped screen sharing`, data.socketId);
+          }
+        }
+      });
+
+      /**
+       * 4. Real-time chat message received
+       */
+      socket.on('chat-message', (message: ChatMessage) => {
+        if (!mounted) return;
+        setMessages((prev) => {
+          // Avoid duplicate messages
+          if (prev.some((m) => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+        setUnreadCount((c) => c + 1);
+      });
+
+      /**
+       * 5. WebRTC Offer from an incoming peer
        */
       socket.on(
         'webrtc-offer',
@@ -287,7 +510,8 @@ export const useWebRTC = (roomId: string) => {
             data.senderSocketId
           );
 
-          const pc = createPeerConnection(data.senderSocketId, stream);
+          const activeStream = localStreamRef.current || stream;
+          const pc = createPeerConnection(data.senderSocketId, activeStream);
 
           try {
             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -306,7 +530,7 @@ export const useWebRTC = (roomId: string) => {
       );
 
       /**
-       * 4. Received WebRTC Answer
+       * 6. WebRTC Answer received
        */
       socket.on(
         'webrtc-answer',
@@ -326,7 +550,7 @@ export const useWebRTC = (roomId: string) => {
       );
 
       /**
-       * 5. Received ICE Candidate
+       * 7. WebRTC ICE Candidate received
        */
       socket.on(
         'webrtc-ice-candidate',
@@ -345,7 +569,7 @@ export const useWebRTC = (roomId: string) => {
       );
 
       /**
-       * 6. Participant left
+       * 8. Participant left
        */
       socket.on(
         'user-left',
@@ -353,6 +577,7 @@ export const useWebRTC = (roomId: string) => {
           if (!mounted) return;
           setParticipants(data.remaining);
           closePeerConnection(data.socketId);
+          setActiveScreenSharePeerId((prev) => (prev === data.socketId ? null : prev));
           addLog('leave', `${data.name} left the meeting`, data.socketId);
         }
       );
@@ -362,50 +587,38 @@ export const useWebRTC = (roomId: string) => {
 
     return () => {
       mounted = false;
+      vadCleanup();
       socketService.leaveMeeting(roomId);
+
       // Clean up peer connections
       peerConnections.current.forEach((pc) => pc.close());
       peerConnections.current.clear();
 
-      // Clean up local stream tracks
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-        if ((localStreamRef.current as any)._cleanup) {
-          (localStreamRef.current as any)._cleanup();
-        }
-        localStreamRef.current = null;
+      // Clean up screen share stream if active
+      if (screenStreamRef.current) {
+        mediaService.stopMediaStream(screenStreamRef.current);
+        screenStreamRef.current = null;
       }
+
+      // Clean up local camera stream tracks
+      if (cameraStreamRef.current) {
+        mediaService.stopMediaStream(cameraStreamRef.current);
+        cameraStreamRef.current = null;
+      }
+
+      localStreamRef.current = null;
 
       // Remove socket listeners
       socket.off('meeting-participants');
       socket.off('user-joined');
+      socket.off('participant-state-changed');
+      socket.off('chat-message');
       socket.off('webrtc-offer');
       socket.off('webrtc-answer');
       socket.off('webrtc-ice-candidate');
       socket.off('user-left');
     };
   }, [roomId, initLocalStream, createPeerConnection, closePeerConnection, addLog]);
-
-  /**
-   * Media controls
-   */
-  const toggleAudio = useCallback(() => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-        setIsAudioMuted(!track.enabled);
-      });
-    }
-  }, []);
-
-  const toggleVideo = useCallback(() => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getVideoTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-        setIsVideoDisabled(!track.enabled);
-      });
-    }
-  }, []);
 
   return {
     localStream,
@@ -414,8 +627,17 @@ export const useWebRTC = (roomId: string) => {
     isConnected,
     isAudioMuted,
     isVideoDisabled,
+    isScreenSharing,
+    activeScreenSharePeerId,
+    isSpeaking,
     signalingLogs,
+    messages,
+    unreadCount,
     toggleAudio,
     toggleVideo,
+    startScreenShare,
+    stopScreenShare,
+    sendMessage,
+    resetUnreadCount,
   };
 };

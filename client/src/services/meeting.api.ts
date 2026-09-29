@@ -1,5 +1,5 @@
 import { api } from './api';
-import { Meeting } from '../types/meeting.types';
+import { Meeting, ChatMessage } from '../types/meeting.types';
 
 export interface CreateMeetingPayload {
   title: string;
@@ -41,4 +41,15 @@ export const meetingApi = {
   async deleteMeeting(idOrRoomId: string): Promise<void> {
     await api.delete(`/meetings/${idOrRoomId}`);
   },
+
+  async getMeetingMessages(idOrRoomId: string): Promise<ChatMessage[]> {
+    const res = await api.get(`/meetings/${idOrRoomId}/messages`);
+    return res.data.data.messages;
+  },
+
+  async sendMeetingMessage(idOrRoomId: string, content: string): Promise<ChatMessage> {
+    const res = await api.post(`/meetings/${idOrRoomId}/messages`, { content });
+    return res.data.data.message;
+  },
 };
+

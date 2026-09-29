@@ -25,7 +25,27 @@ export interface RoomParticipant {
   email: string;
   avatar?: string;
   role: string;
+  isMuted?: boolean;
+  isVideoOff?: boolean;
+  isScreenSharing?: boolean;
+  isSpeaking?: boolean;
   joinedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  meeting?: string | null;
+  sender: {
+    userId: string;
+    name: string;
+    email?: string;
+    avatar?: string;
+  };
+  content: string;
+  type: 'chat' | 'system';
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface SignalingLog {

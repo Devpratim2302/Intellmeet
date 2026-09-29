@@ -5,6 +5,10 @@ export interface RoomParticipant {
   email: string;
   avatar?: string;
   role: string;
+  isMuted?: boolean;
+  isVideoOff?: boolean;
+  isScreenSharing?: boolean;
+  isSpeaking?: boolean;
   joinedAt: Date;
 }
 
@@ -25,6 +29,35 @@ class PresenceManager {
     roomParticipants.set(participant.socketId, participant);
 
     return Array.from(roomParticipants.values());
+  }
+
+  /**
+   * Updates state (mic, camera, screen share, speaking) of a participant
+   */
+  updateParticipantState(
+    roomId: string,
+    socketId: string,
+    updates: Partial<Pick<RoomParticipant, 'isMuted' | 'isVideoOff' | 'isScreenSharing' | 'isSpeaking'>>
+  ): { participant?: RoomParticipant; participants: RoomParticipant[] } {
+    const normalizedRoom = roomId.toLowerCase();
+    const roomParticipants = this.rooms.get(normalizedRoom);
+
+    if (!roomParticipants) {
+      return { participants: [] };
+    }
+
+    const participant = roomParticipants.get(socketId);
+    if (participant) {
+      if (updates.isMuted !== undefined) participant.isMuted = updates.isMuted;
+      if (updates.isVideoOff !== undefined) participant.isVideoOff = updates.isVideoOff;
+      if (updates.isScreenSharing !== undefined) participant.isScreenSharing = updates.isScreenSharing;
+      if (updates.isSpeaking !== undefined) participant.isSpeaking = updates.isSpeaking;
+    }
+
+    return {
+      participant,
+      participants: Array.from(roomParticipants.values()),
+    };
   }
 
   /**

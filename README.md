@@ -10,9 +10,9 @@
 | Phase | Dates | Milestone / Focus | Status |
 | :--- | :--- | :--- | :--- |
 | **Phase 1** | Sep 26–28 | **Foundation + Auth** (Monorepo, Express/TS, Mongoose, JWT, React 19 Frontend) | ✅ **Completed** |
-| **Phase 2** | Sep 29–Oct 1 | Meetings + WebRTC + Socket.io | ⏳ Next |
-| **Phase 3** | Oct 2–4 | Frontend + Meeting UI (Grid, Controls, Device selector) | ⏳ Upcoming |
-| **Phase 4** | Oct 5–7 | Chat + Participants Presence + Screen Sharing | ⏳ Upcoming |
+| **Phase 2** | Sep 29–Oct 1 | **Meetings + WebRTC + Socket.io** (Signaling, Rooms, Mongoose models) | ✅ **Completed** |
+| **Phase 3** | Oct 2–4 | **Frontend + Meeting UI** (Grid, Controls, Device selector) | ✅ **Completed** |
+| **Phase 4** | Oct 5–7 | **Chat + Participants Presence + Screen Sharing** (Block 4) | ✅ **Completed** |
 | **Phase 5** | Oct 8–10 | Transcription Pipeline + Speech AI | ⏳ Upcoming |
 | **Phase 6** | Oct 11–13 | Meeting Summaries + Smart Action Items + Workspace | ⏳ Upcoming |
 | **Phase 7** | Oct 14–16 | Tasks Execution + Analytics Dashboard + Notifications | ⏳ Upcoming |
