@@ -12,6 +12,7 @@ import { MeetingsPage } from './pages/MeetingsPage';
 import { CreateMeetingPage } from './pages/CreateMeetingPage';
 import { JoinMeetingPage } from './pages/JoinMeetingPage';
 import { MeetingRoomPage } from './pages/MeetingRoomPage';
+import { WorkspacesPage } from './pages/WorkspacesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +75,14 @@ export const App: React.FC = () => {
                   element={
                     <ProtectedRoute>
                       <MeetingRoomPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/workspaces"
+                  element={
+                    <ProtectedRoute>
+                      <WorkspacesPage />
                     </ProtectedRoute>
                   }
                 />

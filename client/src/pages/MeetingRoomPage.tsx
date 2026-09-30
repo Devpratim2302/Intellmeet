@@ -7,7 +7,9 @@ import { VideoTile } from '../components/meeting/VideoTile';
 import { MeetingControls } from '../components/meeting/MeetingControls';
 import { ParticipantList } from '../components/meeting/ParticipantList';
 import { ChatPanel } from '../components/meeting/ChatPanel';
-import { Copy, Check, Clock, Activity, Terminal, Monitor } from 'lucide-react';
+import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
+import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
+import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -19,6 +21,7 @@ export const MeetingRoomPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -73,6 +76,15 @@ export const MeetingRoomPage: React.FC = () => {
     resetUnreadCount,
   } = useWebRTC(roomId);
 
+  // Meeting Transcription Hook
+  const {
+    segments,
+    isTranscribing,
+    providerName,
+    toggleTranscription,
+    clearTranscript,
+  } = useMeetingTranscription(roomId, localStream, isAudioMuted);
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -83,12 +95,22 @@ export const MeetingRoomPage: React.FC = () => {
     navigate('/dashboard');
   };
 
+  const handleToggleTranscript = () => {
+    const nextState = !isTranscriptOpen;
+    setIsTranscriptOpen(nextState);
+    if (nextState) {
+      setIsChatOpen(false);
+      setIsParticipantsOpen(false);
+    }
+  };
+
   const handleToggleChat = () => {
     const nextState = !isChatOpen;
     setIsChatOpen(nextState);
     if (nextState) {
       resetUnreadCount();
       setIsParticipantsOpen(false); // Close participants when opening chat on smaller screens
+      setIsTranscriptOpen(false);
     }
   };
 
@@ -97,6 +119,7 @@ export const MeetingRoomPage: React.FC = () => {
     setIsParticipantsOpen(nextState);
     if (nextState) {
       setIsChatOpen(false); // Close chat when opening participants on smaller screens
+      setIsTranscriptOpen(false);
     }
   };
 
@@ -160,6 +183,15 @@ export const MeetingRoomPage: React.FC = () => {
             <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs">
               <Monitor className="w-3.5 h-3.5" />
               <span>{presenter?.name} is sharing screen</span>
+            </div>
+          )}
+
+          {/* Active Live Transcription Notice in Header */}
+          {isTranscribing && (
+            <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI Transcribing ({segments.length})</span>
             </div>
           )}
 
@@ -381,6 +413,21 @@ export const MeetingRoomPage: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Real-Time Meeting Transcript Drawer */}
+        {isTranscriptOpen && (
+          <div className="z-20">
+            <TranscriptPanel
+              isOpen={isTranscriptOpen}
+              onClose={() => setIsTranscriptOpen(false)}
+              segments={segments}
+              isTranscribing={isTranscribing}
+              onToggleTranscription={toggleTranscription}
+              providerName={providerName}
+              onClearTranscript={clearTranscript}
+            />
+          </div>
+        )}
       </div>
 
       {/* Bottom Floating Control Bar */}
@@ -392,6 +439,9 @@ export const MeetingRoomPage: React.FC = () => {
           isSpeaking={isSpeaking}
           isParticipantsOpen={isParticipantsOpen}
           isChatOpen={isChatOpen}
+          isTranscriptOpen={isTranscriptOpen}
+          isTranscribing={isTranscribing}
+          transcriptSegmentCount={segments.length}
           participantCount={participants.length}
           unreadCount={unreadCount}
           onToggleAudio={toggleAudio}
@@ -399,6 +449,7 @@ export const MeetingRoomPage: React.FC = () => {
           onToggleScreenShare={handleToggleScreenShare}
           onToggleParticipants={handleToggleParticipants}
           onToggleChat={handleToggleChat}
+          onToggleTranscript={handleToggleTranscript}
           onLeave={handleLeave}
         />
       </footer>

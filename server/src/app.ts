@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
 import authRoutes from './routes/auth.routes.js';
 import meetingRoutes from './routes/meeting.routes.js';
+import workspaceRoutes from './routes/workspace.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 export const createApp = (): Application => {
@@ -47,6 +48,7 @@ export const createApp = (): Application => {
   // API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/meetings', meetingRoutes);
+  app.use('/api/workspaces', workspaceRoutes);
 
   // 404 Handler
   app.use((_req: Request, res: Response) => {

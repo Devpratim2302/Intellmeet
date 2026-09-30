@@ -14,7 +14,8 @@ const startServer = async () => {
     const server = http.createServer(app);
 
     // 3. Initialize Socket.io Server with WebRTC signaling
-    initSocketServer(server);
+    const io = initSocketServer(server);
+    app.set('io', io);
 
     // 4. Start listening
     server.listen(config.port, () => {

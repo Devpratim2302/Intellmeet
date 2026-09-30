@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Mic,
   MicOff,
@@ -9,6 +8,7 @@ import {
   MessageSquare,
   Users,
   PhoneOff,
+  FileText,
 } from 'lucide-react';
 
 export interface MeetingControlsProps {
@@ -18,6 +18,9 @@ export interface MeetingControlsProps {
   isSpeaking?: boolean;
   isParticipantsOpen: boolean;
   isChatOpen: boolean;
+  isTranscriptOpen?: boolean;
+  isTranscribing?: boolean;
+  transcriptSegmentCount?: number;
   participantCount: number;
   unreadCount?: number;
   onToggleAudio: () => void;
@@ -25,6 +28,7 @@ export interface MeetingControlsProps {
   onToggleScreenShare: () => void;
   onToggleParticipants: () => void;
   onToggleChat: () => void;
+  onToggleTranscript?: () => void;
   onLeave: () => void;
 }
 
@@ -35,6 +39,9 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
   isSpeaking = false,
   isParticipantsOpen,
   isChatOpen,
+  isTranscriptOpen = false,
+  isTranscribing = false,
+  transcriptSegmentCount = 0,
   participantCount,
   unreadCount = 0,
   onToggleAudio,
@@ -42,6 +49,7 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
   onToggleScreenShare,
   onToggleParticipants,
   onToggleChat,
+  onToggleTranscript,
   onLeave,
 }) => {
   return (
@@ -128,6 +136,32 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
           {participantCount}
         </span>
       </button>
+
+      {/* Transcript Toggle */}
+      {onToggleTranscript && (
+        <button
+          onClick={onToggleTranscript}
+          className={`p-3 sm:p-3.5 rounded-2xl transition-all border relative flex items-center justify-center ${
+            isTranscriptOpen
+              ? 'bg-indigo-600 text-white border-indigo-500 shadow-glow-brand'
+              : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+          }`}
+          title="Toggle Meeting Transcript & Live Captions"
+        >
+          <FileText className="w-5 h-5" />
+          {isTranscribing && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-dark-950 animate-pulse ring-2 ring-emerald-400/40" />
+          )}
+          {transcriptSegmentCount !== undefined &&
+            transcriptSegmentCount > 0 &&
+            !isTranscriptOpen &&
+            !isTranscribing && (
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-indigo-500 text-white text-[9px] font-bold border border-dark-950">
+                {transcriptSegmentCount > 99 ? '99+' : transcriptSegmentCount}
+              </span>
+            )}
+        </button>
+      )}
 
       {/* Leave Call */}
       <button

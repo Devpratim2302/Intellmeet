@@ -13,8 +13,8 @@
 | **Phase 2** | Sep 29–Oct 1 | **Meetings + WebRTC + Socket.io** (Signaling, Rooms, Mongoose models) | ✅ **Completed** |
 | **Phase 3** | Oct 2–4 | **Frontend + Meeting UI** (Grid, Controls, Device selector) | ✅ **Completed** |
 | **Phase 4** | Oct 5–7 | **Chat + Participants Presence + Screen Sharing** (Block 4) | ✅ **Completed** |
-| **Phase 5** | Oct 8–10 | Transcription Pipeline + Speech AI | ⏳ Upcoming |
-| **Phase 6** | Oct 11–13 | Meeting Summaries + Smart Action Items + Workspace | ⏳ Upcoming |
+| **Phase 5** | Oct 8–10 | **Transcription Pipeline + Speech AI Architecture** (Block 5) | ✅ **Completed** |
+| **Phase 6** | Oct 11–13 | **Meeting Summaries + Smart Action Items + Workspace** (Block 6) | ✅ **Completed** |
 | **Phase 7** | Oct 14–16 | Tasks Execution + Analytics Dashboard + Notifications | ⏳ Upcoming |
 | **Final QA** | Oct 17 | Full End-to-End Testing + Security Audit + Submission prep | ⏳ Buffer |
 
@@ -102,6 +102,13 @@ JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_SECRET=intellmeet_refresh_super_secret_dev_key_2026
 JWT_REFRESH_EXPIRES_IN=7d
 CLIENT_URL=http://localhost:5173
+
+# AI & Transcription Configuration
+TRANSCRIPTION_PROVIDER=mock    # Options: 'mock' | 'openai' | 'deepgram'
+AI_PROVIDER=mock               # Options: 'mock' | 'openai'
+AI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=
+DEEPGRAM_API_KEY=
 ```
 
 **`client/.env`**:
@@ -140,5 +147,8 @@ npm test --workspace=server
 2. **Dual-Token Architecture**: Short-lived access token (15 mins) + secure refresh token (7 days).
 3. **Session Revocation**: Storing hashed refresh tokens in MongoDB allows instant session revocation upon logout or detected reuse.
 4. **Brute Force Protection**: IP rate limiting on `/register` and `/login`.
-5. **Input Validation**: Strict Zod schema parsing before hitting controllers.
-6. **No Secrets in Git**: All sensitive credentials read strictly from `.env` (which is git-ignored).
+5. **Defensive AI Parsing**: Never blindly trusting AI outputs — strict Zod schema validation before saving any AI summary or action item.
+6. **Workspace RBAC**: Granular role-based access control (`owner`, `admin`, `member`, `viewer`) for workspace resources and membership.
+7. **Input Validation**: Strict Zod schema parsing across all endpoints.
+8. **No Secrets in Git**: All sensitive credentials read strictly from `.env` (which is git-ignored).
+

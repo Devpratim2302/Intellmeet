@@ -9,6 +9,7 @@ export interface IMeeting extends Document {
   participants: mongoose.Types.ObjectId[];
   roomId: string;
   status: MeetingStatus;
+  workspace?: mongoose.Types.ObjectId;
   scheduledStartTime?: Date;
   scheduledEndTime?: Date;
   actualStartTime?: Date;
@@ -56,6 +57,12 @@ const meetingSchema = new Schema<IMeeting>(
       type: String,
       enum: ['scheduled', 'active', 'completed', 'cancelled'],
       default: 'scheduled',
+      index: true,
+    },
+    workspace: {
+      type: Schema.Types.ObjectId,
+      ref: 'Workspace',
+      default: null,
       index: true,
     },
     scheduledStartTime: {

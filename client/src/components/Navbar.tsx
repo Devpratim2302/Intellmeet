@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Video, Sparkles, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { Video, Sparkles, LogOut, LayoutDashboard, User, Building2 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -43,11 +43,18 @@ export const Navbar: React.FC = () => {
                 <span className="hidden sm:inline">Meetings</span>
               </Link>
               <Link
+                to="/workspaces"
+                className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                <Building2 className="w-4 h-4 text-indigo-400" />
+                <span className="hidden sm:inline">Workspaces</span>
+              </Link>
+              <Link
                 to="/dashboard"
                 className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
               >
                 <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                <span className="hidden sm:inline">Workspace</span>
+                <span className="hidden sm:inline">Dashboard</span>
               </Link>
 
               {/* User badge */}

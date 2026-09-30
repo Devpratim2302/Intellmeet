@@ -1,7 +1,10 @@
 import { Server, Socket } from 'socket.io';
+import mongoose from 'mongoose';
 import { presenceManager, RoomParticipant } from './presence.js';
 import { meetingService } from '../services/meeting.service.js';
 import { messageService } from '../services/message.service.js';
+import { transcriptionService } from '../services/transcription/transcription.service.js';
+import { ITranscriptSpeaker } from '../models/transcript.model.js';
 
 export const registerMeetingHandlers = (io: Server, socket: Socket) => {
   const user = socket.data.user;
@@ -268,6 +271,164 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
 
       if (callback) {
         callback({ success: true });
+      }
+    }
+  );
+
+  /**
+   * Client streams an audio chunk for live transcription
+   */
+  socket.on(
+    'audio-chunk-transcribe',
+    async (
+      data: {
+        roomId: string;
+        audioBase64: string;
+        mimeType?: string;
+        startTime?: number;
+        endTime?: number;
+        language?: string;
+        prompt?: string;
+      },
+      callback?: (response: any) => void
+    ) => {
+      try {
+        const { roomId, audioBase64, mimeType = 'audio/webm', startTime, endTime, language, prompt } = data;
+        if (!roomId || !audioBase64) {
+          if (callback) callback({ success: false, message: 'Room ID and audio payload are required' });
+          return;
+        }
+
+        const normalizedRoom = roomId.toLowerCase();
+        const socketRoom = `room:${normalizedRoom}`;
+        const audioBuffer = Buffer.from(audioBase64, 'base64');
+
+        const speaker: ITranscriptSpeaker = {
+          id: new mongoose.Types.ObjectId(user.userId),
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+        };
+
+        const { transcript, segment, result } = await transcriptionService.processMeetingAudio(
+          normalizedRoom,
+          audioBuffer,
+          mimeType,
+          speaker,
+          { startTime, endTime, language, prompt }
+        );
+
+        // Broadcast newly transcribed speech segment to the meeting room
+        io.to(socketRoom).emit('new-transcript-segment', {
+          roomId: normalizedRoom,
+          segment,
+          fullText: transcript.fullText,
+          provider: result.provider,
+        });
+
+        if (callback) {
+          callback({
+            success: true,
+            data: { segment, fullText: transcript.fullText, provider: result.provider },
+          });
+        }
+      } catch (err: any) {
+        console.error('[Socket] Error in audio-chunk-transcribe:', err);
+        if (callback) {
+          callback({ success: false, message: err.message || 'Failed to transcribe audio' });
+        }
+      }
+    }
+  );
+
+  /**
+   * Client sends a direct speech-recognized segment (e.g. from local Web Speech API)
+   */
+  socket.on(
+    'add-transcript-segment',
+    async (
+      data: {
+        roomId: string;
+        text: string;
+        startTime?: number;
+        endTime?: number;
+        confidence?: number;
+      },
+      callback?: (response: any) => void
+    ) => {
+      try {
+        const { roomId, text, startTime, endTime, confidence } = data;
+        if (!roomId || !text?.trim()) {
+          if (callback) callback({ success: false, message: 'Room ID and text are required' });
+          return;
+        }
+
+        const normalizedRoom = roomId.toLowerCase();
+        const socketRoom = `room:${normalizedRoom}`;
+
+        const speaker: ITranscriptSpeaker = {
+          id: new mongoose.Types.ObjectId(user.userId),
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+        };
+
+        const { transcript, segment } = await transcriptionService.addSegment(normalizedRoom, {
+          speaker,
+          text: text.trim(),
+          startTime,
+          endTime,
+          confidence,
+        });
+
+        io.to(socketRoom).emit('new-transcript-segment', {
+          roomId: normalizedRoom,
+          segment,
+          fullText: transcript.fullText,
+          provider: transcript.provider,
+        });
+
+        if (callback) {
+          callback({ success: true, data: { segment, fullText: transcript.fullText } });
+        }
+      } catch (err: any) {
+        console.error('[Socket] Error in add-transcript-segment:', err);
+        if (callback) {
+          callback({ success: false, message: err.message || 'Failed to record segment' });
+        }
+      }
+    }
+  );
+
+  /**
+   * Retrieve transcript history via socket
+   */
+  socket.on(
+    'get-transcript',
+    async (data: { roomId: string }, callback?: (response: any) => void) => {
+      try {
+        const { roomId } = data;
+        if (!roomId) {
+          if (callback) callback({ success: false, message: 'Room ID is required' });
+          return;
+        }
+
+        const transcript = await transcriptionService.getMeetingTranscript(roomId);
+        if (callback) {
+          callback({
+            success: true,
+            data: {
+              transcript,
+              segments: transcript?.segments || [],
+              fullText: transcript?.fullText || '',
+            },
+          });
+        }
+      } catch (err: any) {
+        console.error('[Socket] Error in get-transcript:', err);
+        if (callback) {
+          callback({ success: false, message: err.message || 'Failed to retrieve transcript' });
+        }
       }
     }
   );

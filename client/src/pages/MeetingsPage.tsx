@@ -15,7 +15,11 @@ import {
   Check,
   Radio,
   Trash2,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
+import { TranscriptViewerModal } from '../components/meeting/TranscriptViewerModal';
+import { SummaryActionModal } from '../components/meeting/SummaryActionModal';
 
 export const MeetingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -24,6 +28,14 @@ export const MeetingsPage: React.FC = () => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTranscriptMeeting, setSelectedTranscriptMeeting] = useState<{
+    roomId: string;
+    title: string;
+  } | null>(null);
+  const [selectedSummaryMeeting, setSelectedSummaryMeeting] = useState<{
+    roomId: string;
+    title: string;
+  } | null>(null);
 
   // New Meeting Form
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -314,13 +326,50 @@ export const MeetingsPage: React.FC = () => {
                   )}
 
                   <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Host: {meeting.host?.name || 'You'}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Host: {meeting.host?.name || 'You'}</span>
+                      </div>
                     </div>
-                    <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                      Join <ArrowRight className="w-3 h-3" />
-                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTranscriptMeeting({
+                            roomId: meeting.roomId,
+                            title: meeting.title,
+                          });
+                        }}
+                        className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1 transition-colors border border-white/5 text-[11px]"
+                        title="View meeting transcript"
+                      >
+                        <FileText className="w-3 h-3 text-indigo-400" />
+                        <span>Transcript</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSummaryMeeting({
+                            roomId: meeting.roomId,
+                            title: meeting.title,
+                          });
+                        }}
+                        className="px-2 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 hover:text-white flex items-center gap-1 transition-colors border border-brand-500/20 text-[11px]"
+                        title="View AI summary & action items"
+                      >
+                        <Sparkles className="w-3 h-3 text-brand-400" />
+                        <span>AI Summary</span>
+                      </button>
+
+                      <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                        Join <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -328,6 +377,26 @@ export const MeetingsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Transcript Viewer Modal */}
+      {selectedTranscriptMeeting && (
+        <TranscriptViewerModal
+          isOpen={!!selectedTranscriptMeeting}
+          onClose={() => setSelectedTranscriptMeeting(null)}
+          roomId={selectedTranscriptMeeting.roomId}
+          meetingTitle={selectedTranscriptMeeting.title}
+        />
+      )}
+
+      {/* AI Summary & Action Items Modal */}
+      {selectedSummaryMeeting && (
+        <SummaryActionModal
+          isOpen={!!selectedSummaryMeeting}
+          onClose={() => setSelectedSummaryMeeting(null)}
+          roomId={selectedSummaryMeeting.roomId}
+          meetingTitle={selectedSummaryMeeting.title}
+        />
+      )}
     </div>
   );
 };

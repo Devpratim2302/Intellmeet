@@ -15,4 +15,15 @@ export const config = {
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  transcription: {
+    provider: (process.env.TRANSCRIPTION_PROVIDER || 'mock').toLowerCase(),
+    openaiApiKey: process.env.OPENAI_API_KEY || '',
+    deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
+    maxUploadSizeBytes: parseInt(process.env.MAX_AUDIO_UPLOAD_SIZE_MB || '25', 10) * 1024 * 1024,
+  },
+  ai: {
+    provider: (process.env.AI_PROVIDER || 'mock').toLowerCase(),
+    openaiApiKey: process.env.OPENAI_API_KEY || '',
+    model: process.env.AI_MODEL || 'gpt-4o-mini',
+  },
 };

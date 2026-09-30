@@ -1,0 +1,286 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { socketService } from '../services/socket.service';
+import { transcriptApi } from '../services/transcript.api';
+import { TranscriptSegment } from '../types/transcript.types';
+
+export const useMeetingTranscription = (
+  roomId: string,
+  localStream: MediaStream | null,
+  isAudioMuted: boolean
+) => {
+  const [segments, setSegments] = useState<TranscriptSegment[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
+  const [providerName, setProviderName] = useState<string>('mock');
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
+  const isTranscribingRef = useRef<boolean>(false);
+  const isAudioMutedRef = useRef<boolean>(isAudioMuted);
+  const chunkStartTimeRef = useRef<number>(0);
+
+  // Keep refs synchronized
+  useEffect(() => {
+    isTranscribingRef.current = isTranscribing;
+  }, [isTranscribing]);
+
+  useEffect(() => {
+    isAudioMutedRef.current = isAudioMuted;
+  }, [isAudioMuted]);
+
+  // Load existing transcript from MongoDB on mount or room change
+  useEffect(() => {
+    let isMounted = true;
+    if (!roomId) return;
+
+    setIsLoadingHistory(true);
+    transcriptApi
+      .getTranscript(roomId)
+      .then((res) => {
+        if (isMounted) {
+          if (res?.segments) {
+            setSegments(res.segments);
+          }
+          if (res?.transcript?.provider) {
+            setProviderName(res.transcript.provider);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[useMeetingTranscription] Could not load transcript history:', err.message);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingHistory(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roomId]);
+
+  // Socket event listener for real-time transcript broadcasts
+  useEffect(() => {
+    if (!roomId) return;
+    const socket = socketService.getSocket();
+
+    const handleNewSegment = (data: {
+      roomId: string;
+      segment: TranscriptSegment;
+      provider?: string;
+    }) => {
+      if (data.roomId.toLowerCase() === roomId.toLowerCase()) {
+        setSegments((prev) => {
+          // Avoid duplicate segment IDs
+          if (data.segment.id && prev.some((s) => s.id === data.segment.id)) {
+            return prev;
+          }
+          return [...prev, data.segment];
+        });
+
+        if (data.provider) {
+          setProviderName(data.provider);
+        }
+      }
+    };
+
+    socket.on('new-transcript-segment', handleNewSegment);
+
+    return () => {
+      socket.off('new-transcript-segment', handleNewSegment);
+    };
+  }, [roomId]);
+
+  /**
+   * Captures an audio chunk and sends it to the backend transcription service
+   */
+  const processAudioChunk = useCallback(
+    async (blob: Blob, durationSec: number) => {
+      if (!roomId || blob.size < 1000 || isAudioMutedRef.current) return;
+
+      const startTime = chunkStartTimeRef.current;
+      const endTime = startTime + durationSec;
+      chunkStartTimeRef.current = endTime;
+
+      try {
+        const socket = socketService.getSocket();
+
+        // 1. Convert blob to base64 for fast socket streaming
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Data = (reader.result as string).split(',')[1];
+          if (base64Data && socket.connected) {
+            socket.emit('audio-chunk-transcribe', {
+              roomId,
+              audioBase64: base64Data,
+              mimeType: blob.type || 'audio/webm',
+              startTime,
+              endTime,
+            });
+          }
+        };
+        reader.readAsDataURL(blob);
+
+        // 2. Also support REST upload as backup
+        // transcriptApi.uploadAudio(roomId, blob, { startTime, endTime });
+      } catch (err: any) {
+        console.warn('[useMeetingTranscription] Audio chunk upload failed:', err.message);
+      }
+    },
+    [roomId]
+  );
+
+  /**
+   * Starts MediaRecorder to record audio stream in discrete chunks
+   */
+  const startAudioCapture = useCallback(() => {
+    if (!localStream) {
+      console.warn('[useMeetingTranscription] No localStream available for audio recording');
+      return;
+    }
+
+    const audioTracks = localStream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      console.warn('[useMeetingTranscription] No audio tracks found in localStream');
+      return;
+    }
+
+    try {
+      // Create dedicated audio stream
+      const audioStream = new MediaStream([audioTracks[0]]);
+
+      const supportedMime = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
+      ].find((type) => MediaRecorder.isTypeSupported(type)) || '';
+
+      const recorderOptions: MediaRecorderOptions = supportedMime ? { mimeType: supportedMime } : {};
+      const recorder = new MediaRecorder(audioStream, recorderOptions);
+      mediaRecorderRef.current = recorder;
+
+      let chunkStartTime = Date.now();
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0 && isTranscribingRef.current) {
+          const duration = Math.round((Date.now() - chunkStartTime) / 1000);
+          chunkStartTime = Date.now();
+          processAudioChunk(event.data, duration);
+        }
+      };
+
+      // Record in 6-second slices for regular transcription
+      recorder.start(6000);
+      console.log('[useMeetingTranscription] MediaRecorder audio capture started');
+
+      // In addition, if Web Speech API is supported, run it for immediate speech segment detection
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.lang = 'en-US';
+
+          recognition.onresult = (event: any) => {
+            if (!isTranscribingRef.current) return;
+            const lastResultIndex = event.results.length - 1;
+            const transcriptText = event.results[lastResultIndex][0].transcript.trim();
+            const confidence = event.results[lastResultIndex][0].confidence || 0.95;
+
+            if (transcriptText) {
+              const socket = socketService.getSocket();
+              if (socket.connected) {
+                socket.emit('add-transcript-segment', {
+                  roomId,
+                  text: transcriptText,
+                  confidence,
+                });
+              }
+            }
+          };
+
+          recognition.onerror = (e: any) => {
+            console.warn('[useMeetingTranscription] Web Speech recognition warning:', e.error);
+          };
+
+          recognition.start();
+          speechRecognitionRef.current = recognition;
+        } catch (e: any) {
+          console.warn('[useMeetingTranscription] Web Speech not started:', e.message);
+        }
+      }
+    } catch (err: any) {
+      console.error('[useMeetingTranscription] Failed to start MediaRecorder:', err);
+    }
+  }, [localStream, processAudioChunk, roomId]);
+
+  /**
+   * Stops recording and clean up audio capture
+   */
+  const stopAudioCapture = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+      mediaRecorderRef.current = null;
+    }
+
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.stop();
+      } catch (e) {
+        // ignore
+      }
+      speechRecognitionRef.current = null;
+    }
+    console.log('[useMeetingTranscription] Audio capture stopped');
+  }, []);
+
+  /**
+   * Toggle transcription state
+   */
+  const toggleTranscription = useCallback(() => {
+    setIsTranscribing((prev) => {
+      const nextState = !prev;
+      if (nextState) {
+        startAudioCapture();
+      } else {
+        stopAudioCapture();
+      }
+      return nextState;
+    });
+  }, [startAudioCapture, stopAudioCapture]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      stopAudioCapture();
+    };
+  }, [stopAudioCapture]);
+
+  /**
+   * Clear transcript
+   */
+  const clearTranscript = useCallback(async () => {
+    try {
+      await transcriptApi.deleteTranscript(roomId);
+      setSegments([]);
+    } catch (err: any) {
+      console.error('[useMeetingTranscription] Error clearing transcript:', err);
+    }
+  }, [roomId]);
+
+  return {
+    segments,
+    isTranscribing,
+    providerName,
+    isLoadingHistory,
+    toggleTranscription,
+    clearTranscript,
+  };
+};
