@@ -1,0 +1,14 @@
+apiVersion: v2
+name: intellmeet
+description: Helm chart for IntellMeet - AI-Powered Enterprise Meeting & Collaboration Platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - intellmeet
+  - video-conferencing
+  - webrtc
+  - ai-meeting
+  - socket-io
+maintainers:
+  - name: IntellMeet Team 3

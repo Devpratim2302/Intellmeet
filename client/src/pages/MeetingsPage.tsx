@@ -17,6 +17,7 @@ import {
   Trash2,
   FileText,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import { TranscriptViewerModal } from '../components/meeting/TranscriptViewerModal';
 import { SummaryActionModal } from '../components/meeting/SummaryActionModal';
@@ -364,6 +365,19 @@ export const MeetingsPage: React.FC = () => {
                       >
                         <Sparkles className="w-3 h-3 text-brand-400" />
                         <span>AI Summary</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/meetings/${meeting.roomId}/dashboard`);
+                        }}
+                        className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-white flex items-center gap-1 transition-colors border border-indigo-500/20 text-[11px]"
+                        title="Open Post-Meeting Dashboard"
+                      >
+                        <Activity className="w-3 h-3 text-indigo-400" />
+                        <span>Dashboard</span>
                       </button>
 
                       <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">

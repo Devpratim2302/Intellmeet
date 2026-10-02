@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Meeting, IMeeting } from '../models/meeting.model.js';
 import { generateRoomId } from '../utils/roomId.js';
+import { notificationService } from './notification.service.js';
 
 export interface CreateMeetingDTO {
   title: string;
@@ -118,6 +119,27 @@ export class MeetingService {
     }
 
     await meeting.save();
+
+    if (data.status === 'completed') {
+      const participantIds = meeting.participants || [];
+      for (const p of participantIds) {
+        const pid = (p as any)?._id?.toString() || p?.toString();
+        if (pid && pid !== userId) {
+          notificationService
+            .createNotification({
+              recipient: pid,
+              sender: userId,
+              type: 'meeting_ended',
+              title: 'Meeting Ended',
+              message: `Meeting "${meeting.title}" has ended. View the post-meeting dashboard.`,
+              link: `/meetings/${meeting.roomId}/dashboard`,
+              metadata: { meetingId: meeting._id.toString(), roomId: meeting.roomId },
+            })
+            .catch(() => {});
+        }
+      }
+    }
+
     return meeting.populate('host', 'name email avatar role');
   }
 

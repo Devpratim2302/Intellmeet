@@ -91,8 +91,22 @@ export const MeetingRoomPage: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isHost =
+    Boolean(meetingHostId && (meetingHostId === user?.id || meetingHostId === (user as any)?._id));
+
+  const handleEndMeeting = async () => {
+    if (window.confirm('End this meeting for all participants and proceed to the post-meeting dashboard?')) {
+      try {
+        await meetingApi.updateMeeting(roomId, { status: 'completed' });
+      } catch (err) {
+        console.warn('Failed to mark meeting completed:', err);
+      }
+      navigate(`/meetings/${roomId}/dashboard`);
+    }
+  };
+
   const handleLeave = () => {
-    navigate('/dashboard');
+    navigate(`/meetings/${roomId}/dashboard`);
   };
 
   const handleToggleTranscript = () => {
@@ -450,6 +464,8 @@ export const MeetingRoomPage: React.FC = () => {
           onToggleParticipants={handleToggleParticipants}
           onToggleChat={handleToggleChat}
           onToggleTranscript={handleToggleTranscript}
+          isHost={isHost}
+          onEndMeeting={handleEndMeeting}
           onLeave={handleLeave}
         />
       </footer>

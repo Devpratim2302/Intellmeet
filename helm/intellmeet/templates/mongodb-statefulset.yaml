@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "intellmeet.fullname" . }}-mongodb
+  namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "intellmeet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  serviceName: {{ include "intellmeet.fullname" . }}-mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "intellmeet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mongodb
+  template:
+    metadata:
+      labels:
+        {{- include "intellmeet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          ports:
+            - name: mongodb
+              containerPort: {{ .Values.mongodb.service.targetPort }}
+              protocol: TCP
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+          resources:
+            {{- toYaml .Values.mongodb.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.mongodb.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.mongodb.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.mongodb.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.mongodb.probes.liveness.failureThreshold }}
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: {{ .Values.mongodb.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.mongodb.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.mongodb.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.mongodb.probes.readiness.failureThreshold }}
+  {{- if .Values.mongodb.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+        labels:
+          {{- include "intellmeet.labels" . | nindent 10 }}
+          app.kubernetes.io/component: mongodb
+      spec:
+        accessModes:
+          - {{ .Values.mongodb.persistence.accessMode | default "ReadWriteOnce" }}
+        {{- if .Values.mongodb.persistence.storageClass }}
+        storageClassName: {{ .Values.mongodb.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mongodb.persistence.size | default "2Gi" }}
+  {{- else }}
+      volumes:
+        - name: mongodb-data
+          emptyDir: {}
+  {{- end }}

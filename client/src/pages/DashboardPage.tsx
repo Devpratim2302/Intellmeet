@@ -268,9 +268,22 @@ export const DashboardPage: React.FC = () => {
                       <span>{new Date(meeting.createdAt).toLocaleDateString()}</span>
                     </div>
 
-                    <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      Join Room <ExternalLink className="w-3 h-3" />
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/meetings/${meeting.roomId}/dashboard`);
+                        }}
+                        className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold hover:underline"
+                        title="View post-meeting dashboard"
+                      >
+                        Dashboard
+                      </button>
+                      <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        Join Room <ExternalLink className="w-3 h-3" />
+                      </span>
+                    </div>
                   </div>
                 </div>
               );

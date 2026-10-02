@@ -1,0 +1,24 @@
+========================================================================
+🚀 IntellMeet - AI-Powered Enterprise Meeting & Collaboration Platform
+========================================================================
+
+Chart Release: {{ .Release.Name }}
+Namespace:     {{ .Values.global.namespace | default .Release.Namespace }}
+Status:        DEPLOYED
+
+Architecture Components:
+- Frontend (React / Vite / Nginx SPA): {{ .Values.frontend.replicaCount }} replica(s)
+- Backend API & WebRTC Signaling:      {{ .Values.backend.replicaCount }} replica(s) [Socket.io Redis Adapter enabled]
+- Persistence:                          MongoDB StatefulSet (1 replica, PVC)
+- Cache & Pub/Sub Messaging:           Redis (1 replica, standalone)
+- Ingress Controller:                  NGINX with WebSocket Upgrade & 3600s proxy timeout
+
+To verify running pods:
+  kubectl get pods -n {{ .Values.global.namespace | default .Release.Namespace }}
+
+To access the platform via Ingress:
+  http://localhost:8080/
+
+To tail backend application logs across all pods:
+  kubectl logs -n {{ .Values.global.namespace | default .Release.Namespace }} -l app.kubernetes.io/component=backend -f
+========================================================================

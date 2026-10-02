@@ -224,8 +224,8 @@ export const useMeetingTranscription = (
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
         mediaRecorderRef.current.stop();
-      } catch (e) {
-        // ignore
+      } catch {
+        // ignore stop error if already inactive
       }
       mediaRecorderRef.current = null;
     }
@@ -233,8 +233,8 @@ export const useMeetingTranscription = (
     if (speechRecognitionRef.current) {
       try {
         speechRecognitionRef.current.stop();
-      } catch (e) {
-        // ignore
+      } catch {
+        // ignore stop error if already stopped
       }
       speechRecognitionRef.current = null;
     }

@@ -23,12 +23,14 @@ export interface MeetingControlsProps {
   transcriptSegmentCount?: number;
   participantCount: number;
   unreadCount?: number;
+  isHost?: boolean;
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onToggleParticipants: () => void;
   onToggleChat: () => void;
   onToggleTranscript?: () => void;
+  onEndMeeting?: () => void;
   onLeave: () => void;
 }
 
@@ -44,12 +46,14 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
   transcriptSegmentCount = 0,
   participantCount,
   unreadCount = 0,
+  isHost = false,
   onToggleAudio,
   onToggleVideo,
   onToggleScreenShare,
   onToggleParticipants,
   onToggleChat,
   onToggleTranscript,
+  onEndMeeting,
   onLeave,
 }) => {
   return (
@@ -163,13 +167,25 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
         </button>
       )}
 
+      {/* End Meeting (Host Only) */}
+      {isHost && onEndMeeting && (
+        <button
+          onClick={onEndMeeting}
+          className="px-3.5 sm:px-4 py-3 sm:py-3.5 rounded-2xl bg-rose-700 hover:bg-rose-600 text-white font-semibold text-xs sm:text-sm flex items-center space-x-1.5 transition-all shadow-lg shadow-rose-700/40 border border-rose-500/50"
+          title="End meeting for all participants"
+        >
+          <PhoneOff className="w-4 h-4" />
+          <span className="hidden sm:inline">End Meeting</span>
+        </button>
+      )}
+
       {/* Leave Call */}
       <button
         onClick={onLeave}
-        className="px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs sm:text-sm flex items-center space-x-2 transition-all shadow-lg shadow-rose-600/30"
+        className="px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm flex items-center space-x-1.5 transition-all border border-white/10"
         title="Leave meeting"
       >
-        <PhoneOff className="w-4 h-4" />
+        <PhoneOff className="w-4 h-4 text-rose-400" />
         <span className="hidden sm:inline">Leave</span>
       </button>
     </div>

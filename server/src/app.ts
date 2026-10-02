@@ -7,6 +7,9 @@ import { config } from './config/env.js';
 import authRoutes from './routes/auth.routes.js';
 import meetingRoutes from './routes/meeting.routes.js';
 import workspaceRoutes from './routes/workspace.routes.js';
+import taskRoutes from './routes/task.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 export const createApp = (): Application => {
@@ -35,6 +38,9 @@ export const createApp = (): Application => {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
+  // General API Rate Limiting for security against DoS & brute force
+  app.use('/api', apiLimiter);
+
   // Health check endpoint
   app.get('/api/health', (_req: Request, res: Response) => {
     res.status(200).json({
@@ -49,6 +55,8 @@ export const createApp = (): Application => {
   app.use('/api/auth', authRoutes);
   app.use('/api/meetings', meetingRoutes);
   app.use('/api/workspaces', workspaceRoutes);
+  app.use('/api/tasks', taskRoutes);
+  app.use('/api/notifications', notificationRoutes);
 
   // 404 Handler
   app.use((_req: Request, res: Response) => {

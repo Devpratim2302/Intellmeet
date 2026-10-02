@@ -132,7 +132,9 @@ export class MediaService {
           source.disconnect();
           analyser.disconnect();
           audioCtx.close();
-        } catch {}
+        } catch {
+          // Ignore cleanup errors on already closed/disconnected audio context
+        }
       };
     } catch (e) {
       console.warn('[MediaService] Could not initialize AudioContext for speaking detection:', e);
@@ -165,13 +167,17 @@ export class MediaService {
     stream.getTracks().forEach((track) => {
       try {
         track.stop();
-      } catch {}
+      } catch {
+        // Track already stopped or invalidated
+      }
     });
 
     if ((stream as any)._cleanup) {
       try {
         (stream as any)._cleanup();
-      } catch {}
+      } catch {
+        // Cleanup already executed
+      }
     }
   }
 
@@ -225,7 +231,9 @@ export class MediaService {
           audioCtx.close();
         };
       }
-    } catch {}
+    } catch {
+      // AudioContext unavailable or autoplay prevented synthetic sound
+    }
 
     const tracks: MediaStreamTrack[] = [canvasStream.getVideoTracks()[0]];
     if (audioDestTrack) {

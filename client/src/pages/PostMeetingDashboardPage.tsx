@@ -1,0 +1,815 @@
+import React, { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { meetingApi } from '../services/meeting.api';
+import { summaryApi } from '../services/summary.api';
+import { transcriptApi } from '../services/transcript.api';
+import { taskApi } from '../services/task.api';
+import { Meeting } from '../types/meeting.types';
+import { MeetingSummary, ActionItem } from '../types/summary.types';
+import { Transcript, TranscriptSegment } from '../types/transcript.types';
+import { Task } from '../types/task.types';
+import {
+  Video,
+  Sparkles,
+  Calendar,
+  User,
+  Copy,
+  Check,
+  CheckCircle2,
+  CheckSquare,
+  Plus,
+  ArrowRight,
+  ArrowUpRight,
+  FileText,
+  Search,
+  Loader2,
+  Kanban,
+  Tag,
+  Activity,
+  ExternalLink,
+} from 'lucide-react';
+
+export const PostMeetingDashboardPage: React.FC = () => {
+  const { roomId = '' } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [copiedRoomId, setCopiedRoomId] = useState(false);
+  const [copiedSummary, setCopiedSummary] = useState(false);
+  const [copiedTranscript, setCopiedTranscript] = useState(false);
+  const [transcriptSearch, setTranscriptSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'summary' | 'action_items' | 'tasks' | 'transcript'>('summary');
+  const [convertingItemId, setConvertingItemId] = useState<string | null>(null);
+
+  // 1. Fetch meeting metadata
+  const { data: meeting } = useQuery<Meeting>({
+    queryKey: ['meeting', roomId],
+    queryFn: () => meetingApi.getMeeting(roomId),
+    enabled: !!roomId,
+  });
+
+  // 2. Fetch AI Summary
+  const {
+    data: summary,
+    isLoading: isSummaryLoading,
+    refetch: refetchSummary,
+  } = useQuery<MeetingSummary | null>({
+    queryKey: ['summary', roomId],
+    queryFn: () => summaryApi.getSummary(roomId),
+    enabled: !!roomId,
+  });
+
+  // 3. Fetch Action Items
+  const {
+    data: actionItems = [],
+    refetch: refetchActions,
+  } = useQuery<ActionItem[]>({
+    queryKey: ['actionItems', roomId],
+    queryFn: () => summaryApi.getActionItems(roomId),
+    enabled: !!roomId,
+  });
+
+  // 4. Fetch Transcript
+  const { data: transcriptData } = useQuery<{
+    transcript: Transcript | null;
+    segments: TranscriptSegment[];
+    fullText: string;
+  }>({
+    queryKey: ['transcript', roomId],
+    queryFn: () => transcriptApi.getTranscript(roomId),
+    enabled: !!roomId,
+  });
+
+  // 5. Fetch Tasks associated with this meeting
+  const { data: meetingTasks = [] } = useQuery<Task[]>({
+    queryKey: ['tasks', roomId],
+    queryFn: () => taskApi.getTasks({ roomId }),
+    enabled: !!roomId,
+  });
+
+  // Generate AI Summary Mutation
+  const generateSummaryMutation = useMutation({
+    mutationFn: () => summaryApi.generateSummary(roomId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['summary', roomId], data.summary);
+      queryClient.setQueryData(['actionItems', roomId], data.actionItems);
+      refetchSummary();
+      refetchActions();
+    },
+  });
+
+  // Convert Action Item to Task Mutation
+  const convertTaskMutation = useMutation({
+    mutationFn: (actionItemId: string) =>
+      taskApi.convertActionItem({ actionItemId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', roomId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setConvertingItemId(null);
+    },
+    onError: () => {
+      setConvertingItemId(null);
+    },
+  });
+
+  const handleCopyRoomId = () => {
+    navigator.clipboard.writeText(roomId);
+    setCopiedRoomId(true);
+    setTimeout(() => setCopiedRoomId(false), 2000);
+  };
+
+  const handleCopySummary = () => {
+    if (!summary) return;
+    const lines = [
+      `# ${meeting?.title || 'Meeting'} - AI Summary`,
+      `Room: ${roomId}`,
+      `\n## Overview\n${summary.overview}`,
+      `\n## Key Discussion Points\n${summary.keyPoints.map((k) => `- ${k}`).join('\n')}`,
+    ];
+    if (summary.decisions?.length) {
+      lines.push(`\n## Decisions\n${summary.decisions.map((d) => `- ${d}`).join('\n')}`);
+    }
+    navigator.clipboard.writeText(lines.join('\n'));
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2000);
+  };
+
+  const handleCopyTranscript = () => {
+    if (!transcriptData) return;
+    const fullText =
+      transcriptData.fullText ||
+      transcriptData.segments
+        .map((s: TranscriptSegment) => `${s.speaker?.name || 'Speaker'}: ${s.text}`)
+        .join('\n');
+    navigator.clipboard.writeText(fullText);
+    setCopiedTranscript(true);
+    setTimeout(() => setCopiedTranscript(false), 2000);
+  };
+
+  const handleConvertActionItem = (item: ActionItem) => {
+    setConvertingItemId(item.id);
+    convertTaskMutation.mutate(item.id);
+  };
+
+  // Find if an action item already has a task created for it
+  const findTaskForActionItem = (actionItemId: string): Task | undefined => {
+    return meetingTasks.find((t) => {
+      if (!t.actionItem) return false;
+      const tid =
+        typeof t.actionItem === 'object' && t.actionItem
+          ? (t.actionItem as any).id || (t.actionItem as any)._id
+          : (t.actionItem as string);
+      return tid === actionItemId;
+    });
+  };
+
+  // Filtered transcript segments
+  const filteredSegments: TranscriptSegment[] = (transcriptData?.segments || []).filter(
+    (s: TranscriptSegment) => {
+      if (!transcriptSearch.trim()) return true;
+      const term = transcriptSearch.toLowerCase();
+      return (
+        s.text.toLowerCase().includes(term) ||
+        (s.speaker?.name && s.speaker.name.toLowerCase().includes(term))
+      );
+    }
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8 animate-fade-in">
+      {/* Top Breadcrumb & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-white/10 gap-4">
+        <div>
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 mb-3 text-indigo-400 text-xs font-semibold">
+            <Activity className="w-3.5 h-3.5" />
+            <span>Post-Meeting Intelligence & Artifacts</span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <span>{meeting?.title || `Meeting: ${roomId}`}</span>
+            <span className="text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              {meeting?.status || 'completed'}
+            </span>
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Access recorded transcripts, AI-synthesized takeaways, and converted trackable tasks.
+          </p>
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to={`/meetings/${roomId}`}
+            className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center space-x-2 border border-white/10 transition-colors"
+          >
+            <Video className="w-4 h-4 text-brand-400" />
+            <span>Enter Room</span>
+          </Link>
+
+          <Link
+            to="/tasks"
+            className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white text-xs font-semibold flex items-center space-x-2 border border-white/10 transition-colors"
+          >
+            <Kanban className="w-4 h-4 text-amber-400" />
+            <span>Task Board</span>
+          </Link>
+
+          <button
+            onClick={() => generateSummaryMutation.mutate()}
+            disabled={generateSummaryMutation.isPending}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center space-x-2 shadow-glow-brand transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {generateSummaryMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Synthesizing AI...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>{summary ? 'Regenerate Summary' : 'Generate AI Summary'}</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Meeting Metadata Banner */}
+      <div className="glass-panel p-6 rounded-3xl border border-white/10 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            Room Code
+          </span>
+          <div className="flex items-center space-x-2 mt-1">
+            <span className="text-sm font-mono text-white font-bold">{roomId}</span>
+            <button
+              onClick={handleCopyRoomId}
+              className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+              title="Copy Room ID"
+            >
+              {copiedRoomId ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            Host
+          </span>
+          <div className="flex items-center space-x-2 mt-1">
+            <div className="w-6 h-6 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center text-xs font-bold text-brand-300">
+              {meeting?.host?.name ? meeting.host.name.charAt(0).toUpperCase() : 'H'}
+            </div>
+            <span className="text-sm text-white font-medium">
+              {meeting?.host?.name || 'Meeting Host'}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            Timeline
+          </span>
+          <div className="flex items-center space-x-1.5 mt-1 text-sm text-slate-200">
+            <Calendar className="w-4 h-4 text-indigo-400" />
+            <span>
+              {meeting?.createdAt
+                ? new Date(meeting.createdAt).toLocaleDateString()
+                : 'Today'}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            Tasks Tracked
+          </span>
+          <div className="flex items-center space-x-1.5 mt-1 text-sm text-brand-400 font-bold">
+            <CheckSquare className="w-4 h-4" />
+            <span>{meetingTasks.length} Active Tasks</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center space-x-2 border-b border-white/10 pb-1 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('summary')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
+            activeTab === 'summary'
+              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/40'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>AI Summary & Insights</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('action_items')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
+            activeTab === 'action_items'
+              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/40'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <CheckSquare className="w-4 h-4" />
+          <span>Action Items ({actionItems.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('tasks')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
+            activeTab === 'tasks'
+              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/40'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Kanban className="w-4 h-4" />
+          <span>Trackable Tasks ({meetingTasks.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('transcript')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all ${
+            activeTab === 'transcript'
+              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/40'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>Full Transcript ({transcriptData?.segments?.length || 0})</span>
+        </button>
+      </div>
+
+      {/* Tab 1: AI Summary */}
+      {activeTab === 'summary' && (
+        <div className="space-y-6">
+          {isSummaryLoading ? (
+            <div className="glass-panel p-16 rounded-3xl border border-white/10 text-center flex flex-col items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-400 mb-3" />
+              <p className="text-sm text-slate-400">Loading meeting summary...</p>
+            </div>
+          ) : !summary ? (
+            <div className="glass-panel p-12 rounded-3xl border border-white/10 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-brand-500/10 border border-brand-500/20 mx-auto flex items-center justify-center text-brand-400">
+                <Sparkles className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">No Summary Generated Yet</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
+                  Generate an AI summary from the recorded meeting transcript to extract
+                  overview highlights, key points, and action items.
+                </p>
+              </div>
+              <button
+                onClick={() => generateSummaryMutation.mutate()}
+                disabled={generateSummaryMutation.isPending}
+                className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs inline-flex items-center space-x-2 shadow-glow-brand transition-colors disabled:opacity-50"
+              >
+                {generateSummaryMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Analyzing Transcript...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate AI Summary Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Executive Overview & Key Points */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Overview Card */}
+                <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-brand-400" />
+                      Executive Overview
+                    </h2>
+                    <button
+                      onClick={handleCopySummary}
+                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs flex items-center gap-1.5 transition-colors border border-white/5"
+                    >
+                      {copiedSummary ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Summary</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {summary.overview}
+                  </p>
+                </div>
+
+                {/* Key Points Card */}
+                <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    Key Discussion Points ({summary.keyPoints?.length || 0})
+                  </h2>
+                  <div className="space-y-2.5">
+                    {summary.keyPoints?.map((point, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start space-x-3 p-3 rounded-2xl bg-white/5 border border-white/5 text-xs text-slate-200 leading-relaxed"
+                      >
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sidebar: Decisions & Topics */}
+              <div className="space-y-6">
+                {/* Decisions Made */}
+                <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Check className="w-4 h-4 text-indigo-400" />
+                    Decisions Reached
+                  </h2>
+                  {summary.decisions?.length ? (
+                    <ul className="space-y-2 text-xs text-slate-300">
+                      {summary.decisions.map((decision, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start space-x-2 p-2 rounded-xl bg-indigo-500/5 border border-indigo-500/20"
+                        >
+                          <span className="text-indigo-400 font-bold">•</span>
+                          <span>{decision}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">
+                      No explicit decisions recorded in this call.
+                    </p>
+                  )}
+                </div>
+
+                {/* Topics Discussed */}
+                <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-purple-400" />
+                    Topics Covered
+                  </h2>
+                  {summary.topics?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {summary.topics.map((topic, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-300 border border-purple-500/25 text-xs font-medium"
+                        >
+                          #{topic}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">No topics extracted.</p>
+                  )}
+                </div>
+
+                {/* AI Attribution Card */}
+                <div className="glass-panel p-4 rounded-2xl border border-white/10 text-xs text-slate-400 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-brand-400" />
+                    Provider: <strong className="text-white">{summary.provider}</strong>
+                  </span>
+                  <span className="font-mono text-[11px] text-slate-500">
+                    {summary.aiModel}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 2: Action Items */}
+      {activeTab === 'action_items' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-brand-400" />
+              <span>Extracted Meeting Action Items ({actionItems.length})</span>
+            </h2>
+            <Link
+              to="/tasks"
+              className="text-xs font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1"
+            >
+              <span>View Kanban Board</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {actionItems.length === 0 ? (
+            <div className="glass-panel p-12 rounded-3xl border border-white/10 text-center space-y-3">
+              <CheckSquare className="w-12 h-12 text-slate-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">No Action Items</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Generate an AI summary to automatically extract action items, or create
+                tasks directly from the Task Board.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {actionItems.map((item) => {
+                const correspondingTask = findTaskForActionItem(item.id);
+                const isConverting = convertingItemId === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="glass-card p-5 rounded-2xl border border-white/10 hover:border-brand-500/30 transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                            item.priority === 'high'
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                              : item.priority === 'medium'
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                          }`}
+                        >
+                          {item.priority} priority
+                        </span>
+
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                            item.status === 'completed'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+
+                      <h3 className="text-sm font-semibold text-white leading-snug">
+                        {item.title}
+                      </h3>
+
+                      {item.description && (
+                        <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                          {item.description}
+                        </p>
+                      )}
+
+                      {item.sourceSnippet && (
+                        <p className="text-[11px] text-slate-500 italic mt-2 border-l-2 border-brand-500/40 pl-2">
+                          "{item.sourceSnippet}"
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{item.assigneeName || 'Unassigned'}</span>
+                      </div>
+
+                      {/* Convert to Task or Navigate to Task */}
+                      {correspondingTask ? (
+                        <button
+                          onClick={() => navigate(`/tasks?taskId=${correspondingTask.id}`)}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-semibold text-xs flex items-center space-x-1.5 border border-emerald-500/30 transition-colors"
+                          title="Navigate directly to this task on the board"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>View Task ({correspondingTask.status.toUpperCase()})</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleConvertActionItem(item)}
+                          disabled={isConverting}
+                          className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-sm transition-colors disabled:opacity-50"
+                          title="Convert this action item into a trackable task on the board"
+                        >
+                          {isConverting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Converting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Track as Task</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Tracked Tasks */}
+      {activeTab === 'tasks' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Kanban className="w-5 h-5 text-amber-400" />
+                <span>Tasks Originating from this Meeting ({meetingTasks.length})</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Track deliverables across the TODO, IN PROGRESS, and COMPLETED pipeline.
+              </p>
+            </div>
+
+            <Link
+              to="/tasks"
+              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-glow-brand transition-colors"
+            >
+              <span>Open Full Kanban Board</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {meetingTasks.length === 0 ? (
+            <div className="glass-panel p-12 rounded-3xl border border-white/10 text-center space-y-3">
+              <CheckSquare className="w-12 h-12 text-slate-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">No Tasks Tracked Yet</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Go to the Action Items tab and click "Track as Task" to convert meeting
+                action items into deliverables.
+              </p>
+              <button
+                onClick={() => setActiveTab('action_items')}
+                className="mt-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold"
+              >
+                Go to Action Items
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {(['todo', 'in_progress', 'completed'] as const).map((status) => {
+                const columnTasks = meetingTasks.filter((t) => t.status === status);
+                return (
+                  <div
+                    key={status}
+                    className="glass-panel p-4 rounded-3xl border border-white/10 flex flex-col space-y-3 min-h-[300px]"
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {status.replace('_', ' ')}
+                      </span>
+                      <span className="text-xs font-bold text-slate-400">
+                        ({columnTasks.length})
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {columnTasks.length === 0 ? (
+                        <p className="text-xs text-slate-500 text-center py-8">
+                          No tasks in this stage
+                        </p>
+                      ) : (
+                        columnTasks.map((t) => (
+                          <div
+                            key={t.id}
+                            onClick={() => navigate(`/tasks?taskId=${t.id}`)}
+                            className="glass-card p-3.5 rounded-xl border border-white/10 hover:border-brand-500/40 cursor-pointer transition-all hover:-translate-y-0.5 space-y-2 group shadow-sm"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                {t.priority}
+                              </span>
+                              <span className="text-[10px] text-slate-400 flex items-center gap-1 group-hover:text-brand-300">
+                                View <ArrowUpRight className="w-2.5 h-2.5" />
+                              </span>
+                            </div>
+                            <h4 className="text-xs font-bold text-white group-hover:text-brand-300 transition-colors">
+                              {t.title}
+                            </h4>
+                            {t.assigneeName && (
+                              <div className="flex items-center space-x-1 text-[11px] text-slate-400">
+                                <User className="w-3 h-3" />
+                                <span>{t.assigneeName}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 4: Full Transcript */}
+      {activeTab === 'transcript' && (
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-400" />
+                <span>Chronological Meeting Transcript</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Full searchable speech-to-text dialogue recorded during the call.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              {/* Search bar */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search transcript..."
+                  value={transcriptSearch}
+                  onChange={(e) => setTranscriptSearch(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none w-48"
+                />
+              </div>
+
+              <button
+                onClick={handleCopyTranscript}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-medium flex items-center space-x-1.5 border border-white/10 transition-colors shrink-0"
+              >
+                {copiedTranscript ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy All</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {filteredSegments.length === 0 ? (
+            <div className="p-12 text-center text-slate-400">
+              <FileText className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+              <p className="text-xs">No transcript segments recorded for this meeting.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+              {filteredSegments.map((seg, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-1.5 hover:bg-white/[0.07] transition-colors"
+                >
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="flex items-center space-x-2 font-bold text-brand-300">
+                      <div className="w-5 h-5 rounded-full bg-brand-500/20 flex items-center justify-center text-[10px] text-brand-300">
+                        {seg.speaker?.name ? seg.speaker.name.charAt(0).toUpperCase() : 'S'}
+                      </div>
+                      <span>{seg.speaker?.name || 'Speaker'}</span>
+                    </div>
+
+                    <span className="font-mono text-slate-500">
+                      {seg.timestamp
+                        ? new Date(seg.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })
+                        : ''}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-200 leading-relaxed pl-7">{seg.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

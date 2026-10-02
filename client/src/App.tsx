@@ -13,6 +13,8 @@ import { CreateMeetingPage } from './pages/CreateMeetingPage';
 import { JoinMeetingPage } from './pages/JoinMeetingPage';
 import { MeetingRoomPage } from './pages/MeetingRoomPage';
 import { WorkspacesPage } from './pages/WorkspacesPage';
+import { TasksPage } from './pages/TasksPage';
+import { PostMeetingDashboardPage } from './pages/PostMeetingDashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +77,22 @@ export const App: React.FC = () => {
                   element={
                     <ProtectedRoute>
                       <MeetingRoomPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/meetings/:roomId/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <PostMeetingDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tasks"
+                  element={
+                    <ProtectedRoute>
+                      <TasksPage />
                     </ProtectedRoute>
                   }
                 />

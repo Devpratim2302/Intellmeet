@@ -1,0 +1,205 @@
+# Default values for intellmeet.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  namespace: intellmeet
+  environment: production
+
+namespace:
+  create: true
+  name: intellmeet
+
+# =========================================================================
+# Application Configuration (ConfigMap)
+# =========================================================================
+config:
+  port: 5001
+  nodeEnv: production
+  clientUrl: "http://localhost:8080"
+  transcriptionProvider: "mock"
+  aiProvider: "mock"
+  aiModel: "gpt-4o-mini"
+  maxAudioUploadSizeMb: 25
+  jwtAccessExpiresIn: "15m"
+  jwtRefreshExpiresIn: "7d"
+  redisEnabled: "true"
+
+# =========================================================================
+# Sensitive Credentials (Kubernetes Secret)
+# DO NOT put real production secrets in this file. Supply via --set or secret file.
+# =========================================================================
+secrets:
+  # Provide cryptographic random strings in production
+  jwtAccessSecret: "intellmeet_k8s_jwt_access_secure_key_2026_demo"
+  jwtRefreshSecret: "intellmeet_k8s_jwt_refresh_secure_key_2026_demo"
+  openaiApiKey: ""
+  deepgramApiKey: ""
+
+# =========================================================================
+# Backend Deployment & Service
+# =========================================================================
+backend:
+  replicaCount: 2
+  image:
+    repository: intellmeet-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      path: /api/health
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/health
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+    startup:
+      path: /api/health
+      initialDelaySeconds: 5
+      periodSeconds: 3
+      timeoutSeconds: 3
+      failureThreshold: 20
+  terminationGracePeriodSeconds: 30
+
+# =========================================================================
+# Frontend Deployment & Service
+# =========================================================================
+frontend:
+  replicaCount: 1
+  image:
+    repository: intellmeet-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  probes:
+    liveness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      path: /health
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+# =========================================================================
+# MongoDB StatefulSet & Service
+# =========================================================================
+mongodb:
+  image:
+    repository: mongo
+    tag: "7.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 27017
+    targetPort: 27017
+  database: intellmeet_dev
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+# =========================================================================
+# Redis Deployment & Service (Socket.io Adapter Pub/Sub)
+# =========================================================================
+redis:
+  image:
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 6379
+    targetPort: 6379
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  probes:
+    liveness:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 2
+      failureThreshold: 3
+
+# =========================================================================
+# Ingress Configuration (NGINX with WebSocket Upgrade Support)
+# =========================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "intellmeet-backend"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: ""
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /socket.io
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Video, Sparkles, LogOut, LayoutDashboard, User, Building2 } from 'lucide-react';
+import { Video, Sparkles, LogOut, LayoutDashboard, User, Building2, CheckSquare } from 'lucide-react';
+import { NotificationDropdown } from './NotificationDropdown';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -43,6 +44,13 @@ export const Navbar: React.FC = () => {
                 <span className="hidden sm:inline">Meetings</span>
               </Link>
               <Link
+                to="/tasks"
+                className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                <CheckSquare className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Tasks</span>
+              </Link>
+              <Link
                 to="/workspaces"
                 className="flex items-center space-x-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
               >
@@ -56,6 +64,9 @@ export const Navbar: React.FC = () => {
                 <LayoutDashboard className="w-4 h-4 text-slate-400" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
+
+              {/* Real-time Notification Bell */}
+              <NotificationDropdown />
 
               {/* User badge */}
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">

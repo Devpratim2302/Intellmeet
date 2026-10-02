@@ -23,6 +23,10 @@ declare module 'socket.io' {
   }
 }
 
+let ioInstance: Server | null = null;
+
+export const getSocketIO = (): Server | null => ioInstance;
+
 export const initSocketServer = (httpServer: HttpServer): Server => {
   const io = new Server(httpServer, {
     cors: {
@@ -32,6 +36,8 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
     },
     transports: ['websocket', 'polling'],
   });
+
+  ioInstance = io;
 
   // Socket Authentication Middleware
   io.use(async (socket: Socket, next) => {
@@ -77,6 +83,9 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
   io.on('connection', (socket: Socket) => {
     const user = socket.data.user;
     console.log(`[Socket] Client connected: ${socket.id} (${user.name})`);
+
+    // Personal user room for targeted notifications
+    socket.join(`user:${user.userId}`);
 
     // Register meeting room events
     registerMeetingHandlers(io, socket);

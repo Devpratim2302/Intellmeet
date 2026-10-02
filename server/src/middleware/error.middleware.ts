@@ -43,6 +43,11 @@ export const errorHandler = (
     console.error(err.stack);
   }
 
+  // Prevent leaking internal system error messages to clients in production
+  if (config.nodeEnv === 'production' && statusCode === 500) {
+    message = 'An unexpected internal server error occurred. Please try again later.';
+  }
+
   res.status(statusCode).json({
     success: false,
     message,

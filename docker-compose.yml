@@ -1,0 +1,126 @@
+name: intellmeet
+
+services:
+  # =========================================================================
+  # MongoDB Database Service
+  # =========================================================================
+  mongodb:
+    image: mongo:7.0
+    container_name: intellmeet-mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGODB_HOST_PORT:-27018}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - intellmeet-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # =========================================================================
+  # Redis In-Memory Cache Service (Optional / Ready for scaling)
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: intellmeet-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_HOST_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - intellmeet-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # =========================================================================
+  # Backend API & WebSocket Signaling Server
+  # =========================================================================
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: intellmeet-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 5001
+      NODE_ENV: production
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/intellmeet_dev}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
+      REDIS_URI: ${REDIS_URI:-redis://redis:6379}
+      TRANSCRIPTION_PROVIDER: ${TRANSCRIPTION_PROVIDER:-mock}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      MAX_AUDIO_UPLOAD_SIZE_MB: ${MAX_AUDIO_UPLOAD_SIZE_MB:-25}
+    ports:
+      - "${BACKEND_PORT:-5001}:5001"
+    networks:
+      - intellmeet-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # =========================================================================
+  # Frontend React SPA & Nginx Reverse Proxy
+  # =========================================================================
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-/}
+    container_name: intellmeet-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    networks:
+      - intellmeet-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+# =========================================================================
+# Persistent Named Volumes
+# =========================================================================
+volumes:
+  mongodb_data:
+    name: intellmeet_mongodb_data
+  redis_data:
+    name: intellmeet_redis_data
+
+# =========================================================================
+# Isolated Bridge Network
+# =========================================================================
+networks:
+  intellmeet-network:
+    name: intellmeet-network
+    driver: bridge

@@ -11,6 +11,7 @@ import {
   ValidatedMeetingAIResponse,
 } from '../../validators/ai-analysis.validator.js';
 import { MeetingAnalysisInput } from './ai.types.js';
+import { notificationService } from '../notification.service.js';
 
 export interface GenerateAnalysisOptions {
   providerName?: string;
@@ -195,6 +196,39 @@ export class MeetingAnalysisService {
 
       await actionItem.save();
       savedActionItems.push(actionItem);
+    }
+
+    // Dispatch summary ready notification to meeting host and participants
+    try {
+      const usersToNotify = new Set<string>();
+      if (meeting.host) {
+        const hostId = meeting.host._id ? meeting.host._id.toString() : meeting.host.toString();
+        if (hostId) usersToNotify.add(hostId);
+      }
+      if (meeting.participants) {
+        for (const p of meeting.participants) {
+          const pid = p._id ? p._id.toString() : p.toString();
+          if (pid) usersToNotify.add(pid);
+        }
+      }
+
+      for (const targetUserId of usersToNotify) {
+        if (targetUserId !== options?.userId) {
+          notificationService
+            .createNotification({
+              recipient: targetUserId,
+              sender: options?.userId || null,
+              type: 'summary_ready',
+              title: 'AI Summary Ready',
+              message: `AI summary & action items are ready for "${meeting.title}".`,
+              link: `/meetings/${meeting.roomId}/dashboard`,
+              metadata: { roomId: meeting.roomId, meetingId: meeting._id.toString() },
+            })
+            .catch(() => {});
+        }
+      }
+    } catch (notifErr) {
+      console.warn('[MeetingAnalysisService] Notification dispatch warning:', notifErr);
     }
 
     return {
