@@ -35,6 +35,14 @@ spec:
                 name: {{ include "intellmeet.fullname" $ }}-backend
                 port:
                   number: {{ $.Values.backend.service.port }}
+          # Prometheus metrics route to backend
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "intellmeet.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
           # Single Page Application & static frontend route
           - path: /
             pathType: Prefix

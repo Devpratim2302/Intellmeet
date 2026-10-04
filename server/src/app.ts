@@ -11,9 +11,14 @@ import taskRoutes from './routes/task.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/error.middleware.js';
+import { metricsMiddleware, metricsHandler } from './monitoring/metrics.js';
+import { initSentry, sentryErrorHandler } from './monitoring/sentry.js';
 
 export const createApp = (): Application => {
   const app = express();
+
+  // Initialize Sentry error tracking if configured
+  initSentry(app);
 
   // Security headers
   app.use(helmet());
@@ -37,6 +42,13 @@ export const createApp = (): Application => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+
+  // Prometheus Metrics Collection Middleware
+  app.use(metricsMiddleware);
+
+  // Prometheus Metrics Endpoints (standard /metrics and reverse-proxy /api/metrics)
+  app.get('/metrics', metricsHandler);
+  app.get('/api/metrics', metricsHandler);
 
   // General API Rate Limiting for security against DoS & brute force
   app.use('/api', apiLimiter);
@@ -65,6 +77,9 @@ export const createApp = (): Application => {
       message: 'Route not found',
     });
   });
+
+  // Sentry Error Handler (captures unhandled exceptions before fallback)
+  app.use(sentryErrorHandler);
 
   // Centralized Error Handler
   app.use(errorHandler);

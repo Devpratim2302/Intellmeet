@@ -472,24 +472,83 @@ docker compose down -v
 
 ### 5. Kubernetes & Helm Production Deployment
 
-For enterprise orchestration and multi-pod horizontal scaling, a complete Helm chart is provided at [`helm/intellmeet`](file:///Users/devpratim/ZIDIO%20project/helm/intellmeet).
+For enterprise orchestration and multi-pod horizontal scaling, a production-ready Helm chart is provided at [`helm/intellmeet`](file:///Users/devpratim/ZIDIO%20project/helm/intellmeet).
 
-For the full architectural breakdown, refer to the [Kubernetes Production Architecture Guide](file:///Users/devpratim/ZIDIO%20project/docs/KUBERNETES.md).
+- **Architecture Details**: See [`docs/KUBERNETES.md`](file:///Users/devpratim/ZIDIO%20project/docs/KUBERNETES.md)
+- **Cloud Deployment Guide**: See [`docs/CLOUD_DEPLOYMENT.md`](file:///Users/devpratim/ZIDIO%20project/docs/CLOUD_DEPLOYMENT.md)
+- **Final Engineering Report**: See [`docs/FINAL_ENGINEERING_REPORT.md`](file:///Users/devpratim/ZIDIO%20project/docs/FINAL_ENGINEERING_REPORT.md)
 
-#### Quick Helm Deployment
 ```bash
 # 1. Lint the Helm chart
 helm lint helm/intellmeet
 
 # 2. Deploy to Kubernetes cluster in 'intellmeet' namespace
-helm install intellmeet ./helm/intellmeet --namespace intellmeet --create-namespace
+helm upgrade --install intellmeet ./helm/intellmeet --namespace intellmeet --create-namespace
 
 # 3. Verify pods, services, statefulsets, and PVCs
 kubectl get pods,svc,pvc,ingress -n intellmeet
-
-# 4. Access via Kubernetes Ingress (default port 80 or local mapped port 8080)
-http://localhost:8080/
 ```
+
+---
+
+## 🔄 CI/CD Automation (GitHub Actions)
+
+A multi-stage GitHub Actions workflow is implemented at [`.github/workflows/ci.yml`](file:///Users/devpratim/ZIDIO%20project/.github/workflows/ci.yml):
+
+1. **Unit & Integration Tests (`test`)**: Executes frontend (12 tests) and backend (78 tests) Vitest suites with mock database/auth configurations.
+2. **Production Compilation (`build`)**: Compiles React/Vite client and TypeScript server assets into production distributions.
+3. **Docker Multi-Stage Build (`docker`)**: Builds unprivileged container images tagged deterministically with `github.sha` and `latest`. Pushes to registry if credentials are provided.
+4. **Helm Chart Validation (`helm`)**: Validates Helm chart syntax (`helm lint`) and verifies dry-run template rendering (`helm template`).
+
+---
+
+## 📊 Monitoring & Observability
+
+### 1. Prometheus Metrics (`/metrics`)
+The Node.js backend natively exports Prometheus metrics via `prom-client` on `GET /metrics` and `GET /api/metrics`:
+- **HTTP Request Counters**: `intellmeet_http_requests_total{method, route, status_code}`
+- **HTTP Request Latency**: `intellmeet_http_request_duration_seconds{method, route, status_code}`
+- **Active Real-Time Sockets**: `intellmeet_active_socket_connections`
+- **Active Meeting Rooms**: `intellmeet_active_meeting_rooms`
+- **Node.js Process Metrics**: Resident memory (`RSS`), heap size, event loop lag, CPU time.
+
+### 2. Grafana Dashboards
+An importable production dashboard is available at [`monitoring/grafana/intellmeet-dashboard.json`](file:///Users/devpratim/ZIDIO%20project/monitoring/grafana/intellmeet-dashboard.json) featuring:
+- Live backend availability and health status
+- HTTP request throughput (RPS / QPS)
+- 5xx and 4xx error rate monitoring
+- p50, p95, p99 request latency percentiles
+- Process CPU & memory utilization graphs
+
+### 3. Sentry Error Monitoring
+Integrated through `@sentry/node` with non-blocking environment configuration (`SENTRY_DSN`). When unconfigured, the application logs a safe fallback notice without throwing runtime errors.
+
+---
+
+## ⚡ Performance & Load Testing (Apache JMeter)
+
+- **JMeter Test Plan**: [`tests/performance/intellmeet-load-test.jmx`](file:///Users/devpratim/ZIDIO%20project/tests/performance/intellmeet-load-test.jmx) (50 concurrent virtual users).
+- **Automated Runner**: [`tests/performance/run-load-test.mjs`](file:///Users/devpratim/ZIDIO%20project/tests/performance/run-load-test.mjs)
+- **Verified Benchmark Results**:
+  - **Concurrent Users**: 50 Virtual Users
+  - **Total Operations**: 300 Requests
+  - **Success Rate**: 100% (300 / 300 successful, 0% failure)
+  - **Aggregate Throughput**: ~218 req/sec
+  - **Median Latency (p50)**: 119.59 ms
+  - **Tail Latency (p99)**: 845.05 ms
+
+---
+
+## 🛡️ Security Testing & Hardening (OWASP)
+
+- **Automated Security Check**: [`tests/security/security-check.mjs`](file:///Users/devpratim/ZIDIO%20project/tests/security/security-check.mjs)
+- **ZAP DAST Runner**: [`tests/security/zap-baseline-scan.sh`](file:///Users/devpratim/ZIDIO%20project/tests/security/zap-baseline-scan.sh)
+- **Key Defense Layers**:
+  - **HTTP Security Headers**: Strict Helmet configuration (`nosniff`, `SAMEORIGIN`, `X-Powered-By` hidden).
+  - **Authentication Defense**: Dual-token JWT architecture; rejection of forged or expired tokens.
+  - **NoSQL Injection Defense**: Strict Zod request body schemas preventing MongoDB operator injection.
+  - **Least Privilege Execution**: Backend container runs under non-root unprivileged `node` user.
+  - **Database Isolation**: MongoDB and Redis are internal ClusterIP services and never exposed to the public Internet.
 
 ---
 

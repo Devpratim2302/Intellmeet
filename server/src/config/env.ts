@@ -54,4 +54,12 @@ export const config = {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
+  sentry: {
+    dsn: process.env.SENTRY_DSN || '',
+    environment: nodeEnv,
+    enabled: !!process.env.SENTRY_DSN,
+  },
+  metrics: {
+    enabled: process.env.PROMETHEUS_METRICS_ENABLED !== 'false',
+  },
 };

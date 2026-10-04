@@ -22,6 +22,10 @@ spec:
       labels:
         {{- include "intellmeet.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.backend.service.targetPort }}"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: {{ .Values.backend.terminationGracePeriodSeconds | default 30 }}
       containers:

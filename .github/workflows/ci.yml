@@ -1,0 +1,163 @@
+name: IntellMeet CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =========================================================================
+  # JOB 1: Test Suite & Code Quality Validation
+  # =========================================================================
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Client Vitest Suite
+        run: |
+          cd client
+          npm test
+
+      - name: Run Server Vitest Suite
+        env:
+          NODE_ENV: test
+          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET || 'ci_jwt_access_test_secret_32_characters_long' }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'ci_jwt_refresh_test_secret_32_characters_long' }}
+          TRANSCRIPTION_PROVIDER: mock
+          AI_PROVIDER: mock
+          REDIS_ENABLED: "false"
+        run: |
+          cd server
+          npm test
+
+  # =========================================================================
+  # JOB 2: Frontend & Backend Production Compilation
+  # =========================================================================
+  build:
+    name: Production Build Compilation
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build React/Vite Frontend
+        run: |
+          cd client
+          npm run build
+
+      - name: Build Express/TypeScript Backend
+        run: |
+          cd server
+          npm run build
+
+  # =========================================================================
+  # JOB 3: Multi-Stage Docker Image Build & Validation
+  # =========================================================================
+  docker:
+    name: Docker Image Build & Validation
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Check for Docker Registry Credentials
+        id: check_creds
+        run: |
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ] && [ -n "${{ secrets.DOCKER_PASSWORD }}" ]; then
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+            echo "Registry credentials detected. Images will be built and pushed."
+          else
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "No Docker registry credentials configured. Images will be built and verified locally."
+          fi
+
+      - name: Log in to Docker Registry
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: ${{ steps.check_creds.outputs.has_creds == 'true' }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME || 'intellmeet' }}/intellmeet-backend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME || 'intellmeet' }}/intellmeet-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          push: ${{ steps.check_creds.outputs.has_creds == 'true' }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME || 'intellmeet' }}/intellmeet-frontend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME || 'intellmeet' }}/intellmeet-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # =========================================================================
+  # JOB 4: Kubernetes Helm Chart Validation
+  # =========================================================================
+  helm:
+    name: Helm Chart Validation & Linting
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Lint Helm Chart
+        run: |
+          helm lint helm/intellmeet
+
+      - name: Template Helm Manifests (Dry-Run Render)
+        run: |
+          helm template intellmeet helm/intellmeet \
+            --set backend.image.tag=${{ github.sha }} \
+            --set frontend.image.tag=${{ github.sha }} \
+            --set secrets.jwtAccessSecret=mock_ci_jwt_access_secret_123456 \
+            --set secrets.jwtRefreshSecret=mock_ci_jwt_refresh_secret_123456

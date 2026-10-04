@@ -8,6 +8,7 @@ import {
   handleSocketDisconnect,
 } from './meeting.socket.js';
 import { registerWebRTCHandlers } from './webrtc.socket.js';
+import { activeSocketConnectionsGauge } from '../monitoring/metrics.js';
 
 export interface AuthenticatedSocketUser {
   userId: string;
@@ -81,6 +82,7 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
 
   // Connection Handler
   io.on('connection', (socket: Socket) => {
+    activeSocketConnectionsGauge.inc();
     const user = socket.data.user;
     console.log(`[Socket] Client connected: ${socket.id} (${user.name})`);
 
@@ -95,6 +97,7 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
 
     // Clean up on disconnect
     socket.on('disconnect', () => {
+      activeSocketConnectionsGauge.dec();
       console.log(`[Socket] Client disconnected: ${socket.id} (${user.name})`);
       handleSocketDisconnect(io, socket);
     });
