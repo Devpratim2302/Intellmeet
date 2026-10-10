@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { config } from './config/env.js';
+import { corsOptions } from './config/cors.js';
 import authRoutes from './routes/auth.routes.js';
 import meetingRoutes from './routes/meeting.routes.js';
 import workspaceRoutes from './routes/workspace.routes.js';
@@ -24,14 +25,7 @@ export const createApp = (): Application => {
   app.use(helmet());
 
   // CORS configuration
-  app.use(
-    cors({
-      origin: [config.clientUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-    })
-  );
+  app.use(cors(corsOptions));
 
   // Request logging
   if (config.nodeEnv !== 'test') {

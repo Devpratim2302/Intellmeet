@@ -1,6 +1,7 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { config } from '../config/env.js';
+import { corsOptions } from '../config/cors.js';
 import { verifyAccessToken, TokenPayload } from '../utils/token.js';
 import { User } from '../models/user.model.js';
 import {
@@ -30,11 +31,7 @@ export const getSocketIO = (): Server | null => ioInstance;
 
 export const initSocketServer = (httpServer: HttpServer): Server => {
   const io = new Server(httpServer, {
-    cors: {
-      origin: [config.clientUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'],
-      credentials: true,
-      methods: ['GET', 'POST'],
-    },
+    cors: corsOptions,
     transports: ['websocket', 'polling'],
   });
 

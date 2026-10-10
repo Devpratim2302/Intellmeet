@@ -162,7 +162,7 @@ describe('Authentication API (Development Block 1)', () => {
   });
 
   describe('POST /api/auth/refresh', () => {
-    it('should issue a new access token given a valid refresh token', async () => {
+    it('should issue a new access token given a valid refresh token in body', async () => {
       const loginRes = await request(app).post('/api/auth/register').send(testUser);
       const refreshToken = loginRes.body.data.refreshToken;
 
@@ -174,5 +174,85 @@ describe('Authentication API (Development Block 1)', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.accessToken).toBeDefined();
     });
+
+    it('should issue a new access token given a valid refresh token in cookie', async () => {
+      const loginRes = await request(app).post('/api/auth/register').send(testUser);
+      const refreshToken = loginRes.body.data.refreshToken;
+
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', `refreshToken=${refreshToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.accessToken).toBeDefined();
+    });
+  });
+
+  describe('POST /api/auth/logout', () => {
+    it('should revoke active session, clear cookies, and prevent token reuse', async () => {
+      const loginRes = await request(app).post('/api/auth/register').send(testUser);
+      const accessToken = loginRes.body.data.accessToken;
+      const refreshToken = loginRes.body.data.refreshToken;
+
+      // Call logout
+      const logoutRes = await request(app)
+        .post('/api/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(logoutRes.status).toBe(200);
+      expect(logoutRes.body.success).toBe(true);
+      expect(logoutRes.body.message).toMatch(/logged out successfully/i);
+
+      // Verify clear-cookie headers
+      const cookies = logoutRes.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+      const cookieStr = cookies?.join(';') || '';
+      expect(cookieStr).toMatch(/refreshToken=/i);
+
+      // Verify database session is revoked
+      const userInDb = await User.findOne({ email: testUser.email }).select('+refreshToken');
+      expect(userInDb?.refreshToken).toBeNull();
+
+      // Verify refresh attempt with old token fails
+      const refreshRes = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken });
+
+      expect(refreshRes.status).toBe(401);
+      expect(refreshRes.body.success).toBe(false);
+    });
+  });
+
+  describe('CORS & Security Origin Validation', () => {
+    it('should permit approved origin with credentials and exact match', async () => {
+      const res = await request(app)
+        .get('/api/health')
+        .set('Origin', 'http://localhost:5173');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+    });
+
+    it('should reject unapproved origin by omitting access-control-allow-origin', async () => {
+      const res = await request(app)
+        .get('/api/health')
+        .set('Origin', 'https://unauthorized-malicious-site.com');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    });
+
+    it('should handle preflight OPTIONS request for approved origin', async () => {
+      const res = await request(app)
+        .options('/api/auth/login')
+        .set('Origin', 'http://localhost:5173')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+    });
   });
 });
+

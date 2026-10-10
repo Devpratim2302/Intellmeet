@@ -21,8 +21,8 @@ const startServer = async () => {
     // 4. Attach Redis adapter for horizontal scaling across multiple pods
     await initRedisAdapter(io);
 
-    // 4. Start listening
-    server.listen(config.port, () => {
+    // 4. Start listening on 0.0.0.0 (all IPv4 interfaces, required for Render/Docker)
+    server.listen(config.port, '0.0.0.0', () => {
       console.log(`===============================================`);
       console.log(`🚀 IntellMeet Server running in ${config.nodeEnv} mode`);
       console.log(`📡 URL: http://localhost:${config.port}`);

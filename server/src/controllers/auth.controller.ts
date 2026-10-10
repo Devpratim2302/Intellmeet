@@ -1,14 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
+import { CookieOptions, Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
 import { config } from '../config/env.js';
 
-// Cookie options for secure token delivery
-const getCookieOptions = (maxAgeMs: number) => ({
-  httpOnly: true,
-  secure: config.nodeEnv === 'production',
-  sameSite: 'lax' as const,
-  maxAge: maxAgeMs,
-});
+// Environment-aware cookie options for secure token delivery
+export const getAuthCookieOptions = (maxAgeMs?: number): CookieOptions => {
+  const isProduction = config.nodeEnv === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    // Cross-origin Vercel -> Render HTTPS requests require SameSite=None with Secure=true
+    // Local development on HTTP localhost uses SameSite=Lax
+    sameSite: isProduction ? ('none' as const) : ('lax' as const),
+    path: '/',
+    ...(typeof maxAgeMs === 'number' && maxAgeMs > 0 ? { maxAge: maxAgeMs } : {}),
+  };
+};
 
 export const register = async (
   req: Request,
@@ -21,7 +27,7 @@ export const register = async (
     res.cookie(
       'refreshToken',
       result.refreshToken,
-      getCookieOptions(7 * 24 * 60 * 60 * 1000)
+      getAuthCookieOptions(7 * 24 * 60 * 60 * 1000)
     );
 
     res.status(201).json({
@@ -45,7 +51,7 @@ export const login = async (
     res.cookie(
       'refreshToken',
       result.refreshToken,
-      getCookieOptions(7 * 24 * 60 * 60 * 1000)
+      getAuthCookieOptions(7 * 24 * 60 * 60 * 1000)
     );
 
     res.status(200).json({
@@ -126,8 +132,9 @@ export const logout = async (
       await authService.logout(req.user._id.toString());
     }
 
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+    const clearOptions = getAuthCookieOptions();
+    res.clearCookie('refreshToken', clearOptions);
+    res.clearCookie('accessToken', clearOptions);
 
     res.status(200).json({
       success: true,
