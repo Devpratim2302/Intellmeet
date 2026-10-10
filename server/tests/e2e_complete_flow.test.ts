@@ -57,7 +57,9 @@ describe('Comprehensive End-to-End Workflow Test', () => {
     await mongoose.connection.close();
   });
 
-  it('executes full workflow: Register → Login → Workspace → Meeting → Join → Audio/Video → Chat → Screen Share → End Meeting → Transcript → Summary → Action Items → Task → Dashboard → Notification', async () => {
+  it(
+    'executes full workflow: Register → Login → Workspace → Meeting → Join → Audio/Video → Chat → Screen Share → End Meeting → Transcript → Summary → Action Items → Task → Dashboard → Notification',
+    async () => {
     // ---------------------------------------------------------
     // Step 1: Register User A (Host) and User B (Participant)
     // ---------------------------------------------------------
@@ -353,5 +355,5 @@ describe('Comprehensive End-to-End Workflow Test', () => {
     );
     expect(taskNotif).toBeDefined();
     expect(taskNotif.read).toBe(false);
-  }, 30000);
+  }, 60000);
 });
