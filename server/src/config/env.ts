@@ -29,7 +29,10 @@ const getJwtSecret = (
 export const config = {
   port: parseInt(process.env.PORT || '5001', 10),
   nodeEnv,
-  mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/intellmeet_dev',
+  mongoUri: (process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/intellmeet_dev')
+    .trim()
+    .replace(/^["'`]|["'`]$/g, '')
+    .trim(),
   jwt: {
     accessSecret: getJwtSecret('JWT_ACCESS_SECRET', 'intellmeet_access_dev_fallback_secret_key_only'),
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
