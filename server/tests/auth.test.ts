@@ -244,6 +244,16 @@ describe('Authentication API (Development Block 1)', () => {
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
     });
 
+    it('should permit HTTPS Vercel deployments with credentials', async () => {
+      const res = await request(app)
+        .get('/api/health')
+        .set('Origin', 'https://intellmeet-demo.vercel.app');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('https://intellmeet-demo.vercel.app');
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+    });
+
     it('should handle preflight OPTIONS request for approved origin', async () => {
       const res = await request(app)
         .options('/api/auth/login')

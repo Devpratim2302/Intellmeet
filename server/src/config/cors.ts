@@ -47,7 +47,19 @@ export const isOriginAllowed = (origin: string | undefined): boolean => {
   const normalized = normalizeOrigin(origin);
   const allowedOrigins = getAllowedOrigins();
 
-  return allowedOrigins.includes(normalized);
+  if (allowedOrigins.includes(normalized)) {
+    return true;
+  }
+
+  // Explicit secure policy: permit project deployments on Vercel and Render over HTTPS
+  if (/^https:\/\/[a-zA-Z0-9-_]+\.vercel\.app$/.test(normalized)) {
+    return true;
+  }
+  if (/^https:\/\/[a-zA-Z0-9-_]+\.onrender\.com$/.test(normalized)) {
+    return true;
+  }
+
+  return false;
 };
 
 /**
