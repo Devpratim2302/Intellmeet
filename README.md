@@ -1,8 +1,12 @@
 # IntellMeet — AI-Powered Enterprise Meeting & Collaboration Platform
 
-> **Team 3 Internship Project**  
-> Timeline: Sep 25 – Oct 18, 2026 (7 × 3-Day Development Blocks + Final Buffer)  
-> Status: **Feature Complete & Submission Ready (86/86 Tests Passing, Zero Build Errors)**
+> **Zidio Development Internship Project — Team 3**  
+> Timeline: Sep 25 – Oct 18, 2026 (7 × 3-Day Development Blocks + Final Submission Standard)  
+> Status: **Feature Complete & Submission Ready (96/96 Tests Passing, Zero Build Errors, Verified Cloud Deployments)**  
+> 
+> 🌐 **Live Web Application (Vercel)**: [https://intellmeet-ruby.vercel.app](https://intellmeet-ruby.vercel.app)  
+> 🚀 **Live Production API (Render)**: [https://intellmeet-1i4a.onrender.com/api/health](https://intellmeet-1i4a.onrender.com/api/health)  
+> 🗄️ **Database Cluster**: MongoDB Atlas M0 Cloud Cluster (High Availability Replica Set)
 
 ---
 
@@ -29,7 +33,7 @@
 | **Phase 5** | Oct 8–10 | **Transcription Pipeline + Speech AI Architecture** (Block 5) | ✅ **Completed** |
 | **Phase 6** | Oct 11–13 | **Meeting Summaries + Smart Action Items + Workspace** (Block 6) | ✅ **Completed** |
 | **Phase 7** | Oct 14–16 | **Tasks Execution + Post-Meeting Dashboard + Notifications** (Block 7) | ✅ **Completed** |
-| **Final QA** | Oct 17 | **Full QA Audit, Multi-Workspace Build, 86/86 Tests Passing, Release** | ✅ **Completed** |
+| **Final QA** | Oct 17 | **Full QA Audit, Multi-Workspace Build, 96/96 Tests Passing, Release** | ✅ **Completed** |
 
 ---
 
@@ -296,16 +300,17 @@ npm test
 ### Test Suite Breakdown
 | Suite | Scope | Tests | Result |
 | :--- | :--- | :--- | :--- |
-| `tests/auth.test.ts` | Register, login, refresh, logout, brute-force rate limiter | 11 | ✅ Passed |
+| `tests/auth.test.ts` | Register, login, refresh, logout, brute-force rate limiter | 17 | ✅ Passed |
 | `tests/meeting.test.ts` | Meeting lifecycle, status changes, validation | 10 | ✅ Passed |
 | `tests/chat.test.ts` | Chat message persistence and retrieval | 5 | ✅ Passed |
 | `tests/transcription.test.ts` | Speech ingestion, segment retrieval, text search | 15 | ✅ Passed |
 | `tests/ai_workspace.test.ts` | Workspace RBAC, AI summary synthesis, action items | 18 | ✅ Passed |
 | `tests/task_notification.test.ts` | Kanban tasks, action item conversion, notification delivery | 9 | ✅ Passed |
+| `tests/metrics_sentry.test.ts` | Prometheus metrics scrape, Sentry capture, health probe | 4 | ✅ Passed |
 | `tests/e2e_sessions.test.ts` | WebRTC socket signaling and presence broadcast | 5 | ✅ Passed |
 | `tests/e2e_complete_flow.test.ts` | Full 15-step end-to-end integration workflow | 1 | ✅ Passed |
 | `client/src/__tests__/client_features.test.ts` | Client API clients, media track cleanup, VAD logic | 12 | ✅ Passed |
-| **Total** | **Full Monorepo Verification** | **86** | **100% Passed** |
+| **Total** | **Full Monorepo Verification** | **96** | **100% Passed** |
 
 ---
 

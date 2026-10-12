@@ -3,19 +3,22 @@ node_modules/
 .pnp
 .pnp.js
 
-# Production builds
+# Production builds & compilation outputs
 dist/
 build/
 .next/
 out/
 *.tsbuildinfo
 
-# Environment files
+# Local environment files and secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.*.example
+!.env.docker.example
+
+# Deployment tool caches
+.vercel/
 
 # Logs
 logs
@@ -39,6 +42,6 @@ Thumbs.db
 *.sln
 *.sw?
 
-# Testing coverage
+# Testing coverage & temporary test outputs
 coverage/
 .nyc_output/
