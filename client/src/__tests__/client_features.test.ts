@@ -4,6 +4,7 @@ import { taskApi } from '../services/task.api';
 import { notificationApi } from '../services/notification.api';
 import { meetingApi } from '../services/meeting.api';
 import { api } from '../services/api';
+import { useMeetingUiStore } from '../stores/meetingUiStore';
 
 vi.mock('../services/api', () => ({
   api: {
@@ -197,6 +198,67 @@ describe('Client Services & API Client Suite', () => {
       const updated = await meetingApi.updateMeeting('test-room', { status: 'completed' });
       expect(api.patch).toHaveBeenCalledWith('/meetings/test-room', { status: 'completed' });
       expect(updated.status).toBe('completed');
+    });
+  });
+
+  describe('Zustand MeetingUiStore', () => {
+    beforeEach(() => {
+      useMeetingUiStore.getState().resetMeetingUi();
+    });
+
+    it('should initialize with default UI preferences', () => {
+      const state = useMeetingUiStore.getState();
+      expect(state.isChatOpen).toBe(false);
+      expect(state.isParticipantsOpen).toBe(false);
+      expect(state.isTranscriptOpen).toBe(false);
+      expect(state.layoutMode).toBe('grid');
+      expect(state.isNoiseSuppressionEnabled).toBe(true);
+      expect(state.isEchoCancellationEnabled).toBe(true);
+    });
+
+    it('should toggle chat and automatically close mutually exclusive panels', () => {
+      useMeetingUiStore.getState().toggleParticipants();
+      expect(useMeetingUiStore.getState().isParticipantsOpen).toBe(true);
+
+      // Toggling chat should open chat and close participants
+      useMeetingUiStore.getState().toggleChat();
+      expect(useMeetingUiStore.getState().isChatOpen).toBe(true);
+      expect(useMeetingUiStore.getState().isParticipantsOpen).toBe(false);
+
+      // Toggling chat again closes chat
+      useMeetingUiStore.getState().toggleChat();
+      expect(useMeetingUiStore.getState().isChatOpen).toBe(false);
+    });
+
+    it('should switch layout mode between grid and speaker focus', () => {
+      expect(useMeetingUiStore.getState().layoutMode).toBe('grid');
+
+      useMeetingUiStore.getState().setLayoutMode('speaker');
+      expect(useMeetingUiStore.getState().layoutMode).toBe('speaker');
+
+      useMeetingUiStore.getState().setLayoutMode('grid');
+      expect(useMeetingUiStore.getState().layoutMode).toBe('grid');
+    });
+
+    it('should toggle audio processing preferences', () => {
+      useMeetingUiStore.getState().toggleNoiseSuppression();
+      expect(useMeetingUiStore.getState().isNoiseSuppressionEnabled).toBe(false);
+
+      useMeetingUiStore.getState().toggleEchoCancellation();
+      expect(useMeetingUiStore.getState().isEchoCancellationEnabled).toBe(false);
+    });
+
+    it('should reset all meeting UI state to defaults', () => {
+      useMeetingUiStore.getState().toggleChat();
+      useMeetingUiStore.getState().setLayoutMode('speaker');
+      useMeetingUiStore.getState().toggleNoiseSuppression();
+
+      useMeetingUiStore.getState().resetMeetingUi();
+
+      const state = useMeetingUiStore.getState();
+      expect(state.isChatOpen).toBe(false);
+      expect(state.layoutMode).toBe('grid');
+      expect(state.isNoiseSuppressionEnabled).toBe(true);
     });
   });
 });

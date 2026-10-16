@@ -9,6 +9,7 @@ import { ParticipantList } from '../components/meeting/ParticipantList';
 import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
+import { useMeetingUiStore } from '../stores/meetingUiStore';
 import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
@@ -19,11 +20,27 @@ export const MeetingRoomPage: React.FC = () => {
   const [meetingTitle, setMeetingTitle] = useState<string>('Meeting Room');
   const [meetingHostId, setMeetingHostId] = useState<string | undefined>();
   const [copied, setCopied] = useState(false);
-  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Zustand Store for shared meeting UI preferences & collaboration panels
+  const {
+    isParticipantsOpen,
+    isChatOpen,
+    isTranscriptOpen,
+    showLogs,
+    toggleParticipants,
+    toggleChat,
+    toggleTranscript,
+    toggleLogs,
+    resetMeetingUi,
+  } = useMeetingUiStore();
+
+  // Reset meeting UI on unmount
+  useEffect(() => {
+    return () => {
+      resetMeetingUi();
+    };
+  }, [resetMeetingUi]);
 
   // Fetch meeting metadata if available
   useEffect(() => {
@@ -110,31 +127,18 @@ export const MeetingRoomPage: React.FC = () => {
   };
 
   const handleToggleTranscript = () => {
-    const nextState = !isTranscriptOpen;
-    setIsTranscriptOpen(nextState);
-    if (nextState) {
-      setIsChatOpen(false);
-      setIsParticipantsOpen(false);
-    }
+    toggleTranscript();
   };
 
   const handleToggleChat = () => {
-    const nextState = !isChatOpen;
-    setIsChatOpen(nextState);
-    if (nextState) {
+    if (!isChatOpen) {
       resetUnreadCount();
-      setIsParticipantsOpen(false); // Close participants when opening chat on smaller screens
-      setIsTranscriptOpen(false);
     }
+    toggleChat();
   };
 
   const handleToggleParticipants = () => {
-    const nextState = !isParticipantsOpen;
-    setIsParticipantsOpen(nextState);
-    if (nextState) {
-      setIsChatOpen(false); // Close chat when opening participants on smaller screens
-      setIsTranscriptOpen(false);
-    }
+    toggleParticipants();
   };
 
   const handleToggleScreenShare = () => {
@@ -236,7 +240,7 @@ export const MeetingRoomPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setShowLogs(!showLogs)}
+            onClick={toggleLogs}
             className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors ${
               showLogs
                 ? 'bg-indigo-600 text-white border-indigo-500'
@@ -411,7 +415,7 @@ export const MeetingRoomPage: React.FC = () => {
               participants={participants}
               currentUserId={user?.id}
               hostId={meetingHostId}
-              onClose={() => setIsParticipantsOpen(false)}
+              onClose={toggleParticipants}
             />
           </div>
         )}
@@ -423,7 +427,7 @@ export const MeetingRoomPage: React.FC = () => {
               messages={messages}
               currentUserId={user?.id}
               onSendMessage={sendMessage}
-              onClose={() => setIsChatOpen(false)}
+              onClose={toggleChat}
             />
           </div>
         )}
@@ -433,7 +437,7 @@ export const MeetingRoomPage: React.FC = () => {
           <div className="z-20">
             <TranscriptPanel
               isOpen={isTranscriptOpen}
-              onClose={() => setIsTranscriptOpen(false)}
+              onClose={toggleTranscript}
               segments={segments}
               isTranscribing={isTranscribing}
               onToggleTranscription={toggleTranscription}

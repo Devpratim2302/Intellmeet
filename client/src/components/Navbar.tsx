@@ -1,16 +1,44 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Video, Sparkles, LogOut, LayoutDashboard, User, Building2, CheckSquare } from 'lucide-react';
+import { Video, Sparkles, LogOut, LayoutDashboard, Building2, CheckSquare, Camera, Loader2 } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/Avatar';
 
 export const Navbar: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, uploadAvatar } = useAuth();
   const navigate = useNavigate();
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Please select a valid image file (PNG, JPEG, or WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Avatar image must be smaller than 5MB.');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      await uploadAvatar(file);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to upload avatar to Cloudinary');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -68,15 +96,39 @@ export const Navbar: React.FC = () => {
               {/* Real-time Notification Bell */}
               <NotificationDropdown />
 
-              {/* User badge */}
+              {/* User badge with Cloudinary avatar upload */}
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                <div className="w-7 h-7 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center text-xs font-bold text-brand-300">
-                  {user?.name ? (
-                    user.name.charAt(0).toUpperCase()
-                  ) : (
-                    <User className="w-3.5 h-3.5" />
-                  )}
-                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarFileChange}
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  title="Click to change profile avatar (Cloudinary)"
+                  className="relative group focus:outline-none"
+                >
+                  <Avatar size="sm" className="ring-1 ring-white/10 group-hover:ring-brand-500 transition-all">
+                    {isUploadingAvatar ? (
+                      <div className="flex h-full w-full items-center justify-center bg-brand-600/40">
+                        <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                      </div>
+                    ) : (
+                      <AvatarImage
+                        src={user?.avatar}
+                        alt={user?.name}
+                        fallback={<AvatarFallback name={user?.name} />}
+                      />
+                    )}
+                  </Avatar>
+                  <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <Camera className="w-2.5 h-2.5 text-white" />
+                  </div>
+                </button>
                 <div className="hidden md:flex flex-col text-left">
                   <span className="text-xs font-semibold text-white leading-tight">
                     {user?.name}

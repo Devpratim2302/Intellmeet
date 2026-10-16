@@ -1,6 +1,8 @@
 import { CookieOptions, Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
 import { config } from '../config/env.js';
+import { User } from '../models/user.model.js';
+import { cloudinaryStorage } from '../services/storage/cloudinary.service.js';
 
 // Environment-aware cookie options for secure token delivery
 export const getAuthCookieOptions = (maxAgeMs?: number): CookieOptions => {
@@ -144,3 +146,110 @@ export const logout = async (
     next(error);
   }
 };
+
+export const uploadAvatar = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      const error: any = new Error('Authentication required.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    if (!req.file) {
+      const error: any = new Error('No image file provided for avatar upload.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const userId = req.user._id.toString();
+    const user = await User.findById(userId);
+    if (!user) {
+      const error: any = new Error('User not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Delete obsolete avatar from Cloudinary if previously stored
+    if (user.avatarPublicId) {
+      await cloudinaryStorage.deleteAsset(user.avatarPublicId);
+    }
+
+    // Upload new avatar buffer
+    const { url, publicId } = await cloudinaryStorage.uploadAvatar(
+      req.file.buffer,
+      req.file.mimetype,
+      userId
+    );
+
+    user.avatar = url;
+    user.avatarPublicId = publicId;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar uploaded successfully',
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          role: user.role,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteAvatar = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      const error: any = new Error('Authentication required.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const userId = req.user._id.toString();
+    const user = await User.findById(userId);
+    if (!user) {
+      const error: any = new Error('User not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (user.avatarPublicId) {
+      await cloudinaryStorage.deleteAsset(user.avatarPublicId);
+    }
+
+    user.avatar = '';
+    user.avatarPublicId = '';
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar removed successfully',
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: '',
+          role: user.role,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -15,6 +15,8 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
+  uploadAvatar: (file: File) => Promise<User>;
+  deleteAvatar: () => Promise<User>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -102,6 +104,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const uploadAvatar = async (file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post('/auth/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const updatedUser: User = response.data.data.user;
+    setUser(updatedUser);
+    localStorage.setItem('intellmeet_user', JSON.stringify(updatedUser));
+    return updatedUser;
+  };
+
+  const deleteAvatar = async (): Promise<User> => {
+    const response = await api.delete('/auth/avatar');
+    const updatedUser: User = response.data.data.user;
+    setUser(updatedUser);
+    localStorage.setItem('intellmeet_user', JSON.stringify(updatedUser));
+    return updatedUser;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -112,6 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        uploadAvatar,
+        deleteAvatar,
       }}
     >
       {children}

@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   avatar?: string;
+  avatarPublicId?: string;
   role: 'user' | 'admin' | 'guest';
   refreshToken?: string | null;
   isVerified: boolean;
@@ -41,6 +42,10 @@ const userSchema = new Schema<IUser>(
       select: false,
     },
     avatar: {
+      type: String,
+      default: '',
+    },
+    avatarPublicId: {
       type: String,
       default: '',
     },

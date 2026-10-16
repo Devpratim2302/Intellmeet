@@ -39,3 +39,30 @@ export const audioUpload = multer({
   },
   fileFilter: audioFileFilter,
 });
+
+const imageFileFilter = (
+  _req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  const allowedImageMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+  if (allowedImageMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    const error: any = new Error(
+      `Unsupported image format (${file.mimetype}). Please upload a valid image file (JPEG, PNG, or WebP).`
+    );
+    error.statusCode = 400;
+    cb(error);
+  }
+};
+
+export const imageUpload = multer({
+  storage,
+  limits: {
+    fileSize: config.cloudinary.maxImageUploadSizeBytes,
+  },
+  fileFilter: imageFileFilter,
+});
+
