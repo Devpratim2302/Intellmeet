@@ -133,12 +133,15 @@ describe('Cloudinary Media Storage & Avatar API', () => {
     expect(cleanedUser?.avatarPublicId).toBe('');
   });
 
-  it('should verify Cloudinary service interface and deterministic mock fallback', async () => {
-    const dummyBuffer = Buffer.from('image byte stream');
-    const result = await cloudinaryStorage.uploadAvatar(dummyBuffer, 'image/jpeg', 'unit-test-user');
+  it('should verify Cloudinary service interface and asset upload/delete lifecycle', async () => {
+    const pngBuffer = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+    const result = await cloudinaryStorage.uploadAvatar(pngBuffer, 'image/png', 'unit-test-user');
 
     expect(result.url).toContain('cloudinary.com');
-    expect(result.publicId).toContain('mock_avatar_unit-test-user');
+    expect(result.publicId).toBeTruthy();
 
     const deleteOk = await cloudinaryStorage.deleteAsset(result.publicId);
     expect(deleteOk).toBe(true);
