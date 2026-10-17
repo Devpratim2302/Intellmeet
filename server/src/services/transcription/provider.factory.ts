@@ -3,6 +3,7 @@ import { ITranscriptionProvider } from './transcription.types.js';
 import { MockTranscriptionProvider } from './providers/mock.provider.js';
 import { OpenAIWhisperProvider } from './providers/openai.provider.js';
 import { DeepgramTranscriptionProvider } from './providers/deepgram.provider.js';
+import { GeminiTranscriptionProvider } from './providers/gemini.provider.js';
 
 export class TranscriptionProviderFactory {
   private providers: Map<string, ITranscriptionProvider> = new Map();
@@ -11,6 +12,7 @@ export class TranscriptionProviderFactory {
     this.registerProvider(new MockTranscriptionProvider());
     this.registerProvider(new OpenAIWhisperProvider());
     this.registerProvider(new DeepgramTranscriptionProvider());
+    this.registerProvider(new GeminiTranscriptionProvider());
   }
 
   registerProvider(provider: ITranscriptionProvider): void {

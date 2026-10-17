@@ -21,7 +21,7 @@ IntellMeet is an AI-powered meeting and collaboration platform that helps teams 
 - **Backend:** Node.js, Express.js
 - **Database:** MongoDB, Mongoose
 - **Real-Time Communication:** Socket.io, WebRTC
-- **AI Integration:** OpenAI, Hugging Face
+- **AI Integration:** Gemini
 - **Authentication and Security:** JWT, bcrypt
 - **File Storage:** Cloudinary, AWS S3
 - **Caching and Real-Time Scaling:** Redis
@@ -32,4 +32,4 @@ IntellMeet is an AI-powered meeting and collaboration platform that helps teams 
 
 ## Live Demo
 
-[Open IntellMeet](https://intellmeet-ruby.vercel.app)
+[Open IntellMeet](https://intellmeet-ruby.vercel.app/)

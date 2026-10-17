@@ -2,6 +2,7 @@ import { config } from '../../config/env.js';
 import { IAICompletionProvider } from './ai.types.js';
 import { MockAIAnalysisProvider } from './providers/mock.ai.provider.js';
 import { OpenAIAIAnalysisProvider } from './providers/openai.ai.provider.js';
+import { GeminiAIAnalysisProvider } from './providers/gemini.ai.provider.js';
 
 export class AIProviderFactory {
   private providers: Map<string, IAICompletionProvider> = new Map();
@@ -9,6 +10,7 @@ export class AIProviderFactory {
   constructor() {
     this.registerProvider(new MockAIAnalysisProvider());
     this.registerProvider(new OpenAIAIAnalysisProvider());
+    this.registerProvider(new GeminiAIAnalysisProvider());
   }
 
   registerProvider(provider: IAICompletionProvider): void {
