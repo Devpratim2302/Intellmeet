@@ -62,6 +62,18 @@ export const JoinMeetingPage: React.FC = () => {
     setIsVideoOff(!isVideoOff);
   };
 
+  const extractMeetingCode = (input: string): string => {
+    const trimmed = input.trim();
+    const match = trimmed.match(/meet-[a-zA-Z0-9-]+/i);
+    if (match) return match[0].toLowerCase();
+    return trimmed
+      .replace(/.*\/meetings\//i, '')
+      .replace(/.*\/room\//i, '')
+      .split(/[?#\/]/)[0]
+      .trim()
+      .toLowerCase();
+  };
+
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomId.trim()) return;
@@ -71,7 +83,7 @@ export const JoinMeetingPage: React.FC = () => {
       localStream.getTracks().forEach((t) => t.stop());
     }
 
-    const cleanRoomId = roomId.trim().toLowerCase();
+    const cleanRoomId = extractMeetingCode(roomId);
     navigate(`/meetings/${cleanRoomId}`);
   };
 
@@ -164,7 +176,14 @@ export const JoinMeetingPage: React.FC = () => {
               placeholder="e.g. meet-989d-e047"
               required
               value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.includes('/') || val.includes('http')) {
+                  setRoomId(extractMeetingCode(val));
+                } else {
+                  setRoomId(val);
+                }
+              }}
               icon={<Sparkles className="w-4 h-4" />}
             />
 

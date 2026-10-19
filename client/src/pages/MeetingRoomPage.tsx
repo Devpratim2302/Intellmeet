@@ -102,10 +102,12 @@ export const MeetingRoomPage: React.FC = () => {
     clearTranscript,
   } = useMeetingTranscription(roomId, localStream, isAudioMuted);
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyCode = () => {
+    if (roomId) {
+      navigator.clipboard.writeText(roomId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const isHost =
@@ -191,11 +193,6 @@ export const MeetingRoomPage: React.FC = () => {
             </h1>
           </div>
 
-          <div className="hidden sm:flex items-center space-x-2">
-            <span className="text-xs text-slate-500 font-mono">|</span>
-            <span className="text-xs text-slate-400 font-mono">{roomId}</span>
-          </div>
-
           {/* Active Screen Share Notice in Header */}
           {isSomeoneSharing && (
             <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs">
@@ -214,19 +211,20 @@ export const MeetingRoomPage: React.FC = () => {
           )}
 
           <button
-            onClick={handleCopyLink}
-            className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 hover:text-white transition-colors border border-white/5"
-            title="Copy invite link"
+            type="button"
+            onClick={handleCopyCode}
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 hover:text-white transition-colors border border-white/5 group"
+            title="Copy meeting code"
           >
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied</span>
+                <span className="text-emerald-400 font-mono font-medium">Copied Code!</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Invite Link</span>
+                <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
+                <span className="font-mono text-slate-300 group-hover:text-white transition-colors">{roomId}</span>
               </>
             )}
           </button>

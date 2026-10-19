@@ -86,10 +86,22 @@ export const MeetingsPage: React.FC = () => {
     }
   };
 
+  const extractMeetingCode = (input: string): string => {
+    const trimmed = input.trim();
+    const match = trimmed.match(/meet-[a-zA-Z0-9-]+/i);
+    if (match) return match[0].toLowerCase();
+    return trimmed
+      .replace(/.*\/meetings\//i, '')
+      .replace(/.*\/room\//i, '')
+      .split(/[?#\/]/)[0]
+      .trim()
+      .toLowerCase();
+  };
+
   const handleQuickJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickRoomId.trim()) return;
-    navigate(`/meetings/${quickRoomId.trim().toLowerCase()}`);
+    navigate(`/meetings/${extractMeetingCode(quickRoomId)}`);
   };
 
   const handleCopy = (roomId: string) => {
@@ -164,7 +176,14 @@ export const MeetingsPage: React.FC = () => {
               required
               placeholder="e.g. meet-a1b2-c3d4"
               value={quickRoomId}
-              onChange={(e) => setQuickRoomId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.includes('/') || val.includes('http')) {
+                  setQuickRoomId(extractMeetingCode(val));
+                } else {
+                  setQuickRoomId(val);
+                }
+              }}
               className="w-full px-4 py-2.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
             <button
