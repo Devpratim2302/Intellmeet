@@ -49,11 +49,6 @@ export const HomePage: React.FC = () => {
           )}
         </div>
       </main>
-
-      {/* Footer / Status bar */}
-      <footer className="border-t border-white/5 py-6 px-4 text-center text-xs text-slate-500">
-        <p>IntellMeet • Team 3 • Phase 1 Foundation & Auth</p>
-      </footer>
     </div>
   );
 };
