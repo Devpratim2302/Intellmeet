@@ -10,6 +10,7 @@ export const useMeetingTranscription = (
 ) => {
   const [segments, setSegments] = useState<TranscriptSegment[]>([]);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
+  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [providerName, setProviderName] = useState<string>('mock');
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
 
@@ -27,6 +28,21 @@ export const useMeetingTranscription = (
   useEffect(() => {
     isAudioMutedRef.current = isAudioMuted;
   }, [isAudioMuted]);
+
+  // Recording timer
+  useEffect(() => {
+    let interval: any = null;
+    if (isTranscribing) {
+      interval = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTranscribing]);
 
   // Load existing transcript from MongoDB on mount or room change
   useEffect(() => {
@@ -95,7 +111,7 @@ export const useMeetingTranscription = (
    */
   const processAudioChunk = useCallback(
     async (blob: Blob, durationSec: number) => {
-      if (!roomId || blob.size < 1000 || isAudioMutedRef.current) return;
+      if (!roomId || !blob || blob.size === 0 || isAudioMutedRef.current) return;
 
       const startTime = chunkStartTimeRef.current;
       const endTime = startTime + durationSec;
@@ -108,7 +124,7 @@ export const useMeetingTranscription = (
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64Data = (reader.result as string).split(',')[1];
-          if (base64Data && socket.connected) {
+          if (base64Data && socket && socket.connected) {
             socket.emit('audio-chunk-transcribe', {
               roomId,
               audioBase64: base64Data,
@@ -119,9 +135,6 @@ export const useMeetingTranscription = (
           }
         };
         reader.readAsDataURL(blob);
-
-        // 2. Also support REST upload as backup
-        // transcriptApi.uploadAudio(roomId, blob, { startTime, endTime });
       } catch (err: any) {
         console.warn('[useMeetingTranscription] Audio chunk upload failed:', err.message);
       }
@@ -163,14 +176,14 @@ export const useMeetingTranscription = (
 
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0 && isTranscribingRef.current) {
-          const duration = Math.round((Date.now() - chunkStartTime) / 1000);
+          const duration = Math.max(1, Math.round((Date.now() - chunkStartTime) / 1000));
           chunkStartTime = Date.now();
           processAudioChunk(event.data, duration);
         }
       };
 
-      // Record in 6-second slices for regular transcription
-      recorder.start(6000);
+      // Record in 4-second slices for regular transcription
+      recorder.start(4000);
       console.log('[useMeetingTranscription] MediaRecorder audio capture started');
 
       // In addition, if Web Speech API is supported, run it for immediate speech segment detection
@@ -192,7 +205,7 @@ export const useMeetingTranscription = (
 
             if (transcriptText) {
               const socket = socketService.getSocket();
-              if (socket.connected) {
+              if (socket && socket.connected) {
                 socket.emit('add-transcript-segment', {
                   roomId,
                   text: transcriptText,
@@ -203,7 +216,20 @@ export const useMeetingTranscription = (
           };
 
           recognition.onerror = (e: any) => {
-            console.warn('[useMeetingTranscription] Web Speech recognition warning:', e.error);
+            if (e.error !== 'no-speech') {
+              console.warn('[useMeetingTranscription] Web Speech recognition warning:', e.error);
+            }
+          };
+
+          // Auto-restart recognition when browser stops listening after silence
+          recognition.onend = () => {
+            if (isTranscribingRef.current) {
+              try {
+                recognition.start();
+              } catch {
+                // already active or starting
+              }
+            }
           };
 
           recognition.start();
@@ -223,6 +249,9 @@ export const useMeetingTranscription = (
   const stopAudioCapture = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.requestData();
+        }
         mediaRecorderRef.current.stop();
       } catch {
         // ignore stop error if already inactive
@@ -242,7 +271,7 @@ export const useMeetingTranscription = (
   }, []);
 
   /**
-   * Toggle transcription state
+   * Toggle transcription & recording state
    */
   const toggleTranscription = useCallback(() => {
     setIsTranscribing((prev) => {
@@ -278,9 +307,14 @@ export const useMeetingTranscription = (
   return {
     segments,
     isTranscribing,
+    isRecording: isTranscribing,
+    recordingSeconds,
     providerName,
     isLoadingHistory,
+    startAudioCapture,
+    stopAudioCapture,
     toggleTranscription,
+    toggleRecording: toggleTranscription,
     clearTranscript,
   };
 };

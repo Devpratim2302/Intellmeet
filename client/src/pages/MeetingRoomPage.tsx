@@ -4,6 +4,7 @@ import { useWebRTC } from '../hooks/useWebRTC';
 import { useAuth } from '../context/AuthContext';
 import { meetingApi } from '../services/meeting.api';
 import { socketService } from '../services/socket.service';
+import { summaryApi } from '../services/summary.api';
 import { VideoTile } from '../components/meeting/VideoTile';
 import { MeetingControls } from '../components/meeting/MeetingControls';
 import { ParticipantList } from '../components/meeting/ParticipantList';
@@ -11,7 +12,7 @@ import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
 import { useMeetingUiStore } from '../stores/meetingUiStore';
-import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles, PhoneOff, ArrowLeft } from 'lucide-react';
+import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -112,12 +113,16 @@ export const MeetingRoomPage: React.FC = () => {
     }
   }, [hasConcluded, localStream]);
 
-  // Meeting Transcription Hook
+  // Meeting Transcription & Recording Hook
   const {
     segments,
     isTranscribing,
+    isRecording,
+    recordingSeconds,
     providerName,
     toggleTranscription,
+    toggleRecording,
+    stopAudioCapture,
     clearTranscript,
   } = useMeetingTranscription(roomId, localStream, isAudioMuted);
 
@@ -134,6 +139,9 @@ export const MeetingRoomPage: React.FC = () => {
 
   const handleEndMeeting = async () => {
     if (window.confirm('End this meeting for all participants and proceed to the post-meeting dashboard?')) {
+      if (isRecording) {
+        stopAudioCapture();
+      }
       if (localStream) {
         localStream.getTracks().forEach((t) => t.stop());
       }
@@ -148,11 +156,18 @@ export const MeetingRoomPage: React.FC = () => {
         // ignore
       }
       setIsEndedLocally(true);
+
+      // Trigger AI summary generation in background so it is ready immediately
+      summaryApi.generateSummary(roomId).catch(() => {});
+
       navigate(`/meetings/${roomId}/dashboard`);
     }
   };
 
   const handleLeave = () => {
+    if (isRecording) {
+      stopAudioCapture();
+    }
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
     }
@@ -313,13 +328,35 @@ export const MeetingRoomPage: React.FC = () => {
             </div>
           )}
 
-          {/* Active Live Transcription Notice in Header */}
-          {isTranscribing && (
-            <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>AI Transcribing ({segments.length})</span>
+          {/* Active Live Transcription & Recording Notice in Header */}
+          {isRecording ? (
+            <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs shadow-lg shadow-rose-500/10">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="font-bold text-rose-400 font-mono uppercase tracking-wider">REC</span>
+              <span className="font-mono text-white font-semibold">
+                {Math.floor(recordingSeconds / 60).toString().padStart(2, '0')}:
+                {(recordingSeconds % 60).toString().padStart(2, '0')}
+              </span>
+              <span className="hidden sm:inline text-slate-300">• Live Transcribing ({segments.length})</span>
+              <button
+                type="button"
+                onClick={toggleRecording}
+                className="ml-1 text-[11px] font-semibold underline text-rose-300 hover:text-white"
+                title="Stop recording"
+              >
+                Stop
+              </button>
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleRecording}
+              className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs transition-all shadow-sm"
+              title="Start recording meeting audio and speech transcript"
+            >
+              <Circle className="w-2.5 h-2.5 fill-rose-500 text-rose-500" />
+              <span className="font-semibold">Start Recording</span>
+            </button>
           )}
 
           <button
@@ -567,6 +604,9 @@ export const MeetingRoomPage: React.FC = () => {
           isVideoOff={isVideoDisabled}
           isScreenSharing={isScreenSharing}
           isSpeaking={isSpeaking}
+          isRecording={isRecording}
+          recordingSeconds={recordingSeconds}
+          onToggleRecording={toggleRecording}
           isParticipantsOpen={isParticipantsOpen}
           isChatOpen={isChatOpen}
           isTranscriptOpen={isTranscriptOpen}

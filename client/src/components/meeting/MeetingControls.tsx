@@ -9,6 +9,8 @@ import {
   Users,
   PhoneOff,
   FileText,
+  Circle,
+  Square,
 } from 'lucide-react';
 
 export interface MeetingControlsProps {
@@ -16,6 +18,8 @@ export interface MeetingControlsProps {
   isVideoOff: boolean;
   isScreenSharing: boolean;
   isSpeaking?: boolean;
+  isRecording?: boolean;
+  recordingSeconds?: number;
   isParticipantsOpen: boolean;
   isChatOpen: boolean;
   isTranscriptOpen?: boolean;
@@ -27,6 +31,7 @@ export interface MeetingControlsProps {
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
+  onToggleRecording?: () => void;
   onToggleParticipants: () => void;
   onToggleChat: () => void;
   onToggleTranscript?: () => void;
@@ -34,11 +39,19 @@ export interface MeetingControlsProps {
   onLeave: () => void;
 }
 
+const formatDuration = (totalSeconds: number) => {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 export const MeetingControls: React.FC<MeetingControlsProps> = ({
   isMuted,
   isVideoOff,
   isScreenSharing,
   isSpeaking = false,
+  isRecording = false,
+  recordingSeconds = 0,
   isParticipantsOpen,
   isChatOpen,
   isTranscriptOpen = false,
@@ -50,6 +63,7 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
   onToggleAudio,
   onToggleVideo,
   onToggleScreenShare,
+  onToggleRecording,
   onToggleParticipants,
   onToggleChat,
   onToggleTranscript,
@@ -106,6 +120,35 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
           <Monitor className="w-5 h-5" />
         )}
       </button>
+
+      {/* Recording & Live AI Transcription Control */}
+      {onToggleRecording && (
+        <button
+          onClick={onToggleRecording}
+          className={`px-3 sm:px-4 py-3 sm:py-3.5 rounded-2xl transition-all border flex items-center justify-center space-x-2 ${
+            isRecording
+              ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-lg shadow-rose-500/30 ring-2 ring-rose-500/40'
+              : 'bg-dark-900/90 text-slate-200 border-white/10 hover:border-rose-500/40 hover:text-white'
+          }`}
+          title={isRecording ? 'Stop Recording & Transcription' : 'Start Recording & Live AI Transcription'}
+        >
+          {isRecording ? (
+            <>
+              <Square className="w-4 h-4 fill-rose-500 text-rose-500 animate-pulse" />
+              <span className="text-xs font-mono font-bold text-rose-400">
+                {recordingSeconds !== undefined ? formatDuration(recordingSeconds) : 'REC'}
+              </span>
+            </>
+          ) : (
+            <>
+              <Circle className="w-4 h-4 fill-rose-500 text-rose-500" />
+              <span className="hidden sm:inline text-xs font-semibold text-slate-200">
+                Record
+              </span>
+            </>
+          )}
+        </button>
+      )}
 
       {/* Chat Toggle */}
       <button
