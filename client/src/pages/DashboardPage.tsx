@@ -190,8 +190,7 @@ export const DashboardPage: React.FC = () => {
                 No active meeting rooms yet
               </h3>
               <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                Create your first meeting room to start collaborating and testing WebRTC
-                peer video.
+                Create your first meeting room to start collaborating.
               </p>
             </div>
             <Link to="/meetings/create">
