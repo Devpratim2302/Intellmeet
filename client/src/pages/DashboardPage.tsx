@@ -189,9 +189,6 @@ export const DashboardPage: React.FC = () => {
               <h3 className="text-base font-bold text-white">
                 No active meeting rooms yet
               </h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                Create your first meeting room to start collaborating.
-              </p>
             </div>
             <Link to="/meetings/create">
               <Button variant="primary" icon={<Plus className="w-4 h-4" />}>
