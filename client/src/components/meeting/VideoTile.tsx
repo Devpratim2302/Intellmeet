@@ -48,7 +48,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 
   return (
     <div
-      className={`relative glass-card rounded-2xl overflow-hidden border bg-dark-900/90 flex items-center justify-center aspect-video min-h-[200px] sm:min-h-[260px] shadow-lg transition-all duration-300 ${
+      className={`relative rounded-2xl overflow-hidden border bg-[#0a0e17] text-white flex items-center justify-center aspect-video min-h-[200px] sm:min-h-[260px] shadow-lg transition-all duration-300 ${
         activeSpeaking
           ? 'border-emerald-500/80 ring-2 ring-emerald-400/80 ring-offset-2 ring-offset-dark-950 shadow-emerald-500/20 shadow-xl'
           : isScreenSharing

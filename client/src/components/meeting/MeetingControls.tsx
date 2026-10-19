@@ -80,7 +80,7 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
             ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/30'
             : isSpeaking
               ? 'bg-emerald-600/30 text-emerald-300 border-emerald-400/50 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/40'
-              : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+              : 'meeting-control-btn'
         }`}
         title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
       >
@@ -93,7 +93,7 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
         className={`p-3 sm:p-3.5 rounded-2xl transition-all border flex items-center justify-center ${
           isVideoOff
             ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/30'
-            : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+            : 'meeting-control-btn'
         }`}
         title={isVideoOff ? 'Turn camera on' : 'Turn camera off'}
       >
@@ -110,7 +110,7 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
         className={`p-3 sm:p-3.5 rounded-2xl transition-all border flex items-center justify-center ${
           isScreenSharing
             ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/30'
-            : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+            : 'meeting-control-btn'
         }`}
         title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
       >
@@ -128,7 +128,7 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
           className={`px-3 sm:px-4 py-3 sm:py-3.5 rounded-2xl transition-all border flex items-center justify-center space-x-2 ${
             isRecording
               ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-lg shadow-rose-500/30 ring-2 ring-rose-500/40'
-              : 'bg-dark-900/90 text-slate-200 border-white/10 hover:border-rose-500/40 hover:text-white'
+              : 'meeting-control-btn meeting-record-btn'
           }`}
           title={isRecording ? 'Stop Recording & Transcription' : 'Start Recording & Live AI Transcription'}
         >
@@ -141,8 +141,8 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
             </>
           ) : (
             <>
-              <Circle className="w-4 h-4 fill-rose-500 text-rose-500" />
-              <span className="hidden sm:inline text-xs font-semibold text-slate-200">
+              <Circle className="w-4 h-4 fill-rose-500 text-rose-500 shrink-0" />
+              <span className="hidden sm:inline text-xs font-semibold meeting-record-text">
                 Record
               </span>
             </>
@@ -156,13 +156,13 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
         className={`p-3 sm:p-3.5 rounded-2xl transition-all border relative flex items-center justify-center ${
           isChatOpen
             ? 'bg-brand-600 text-white border-brand-500 shadow-glow-brand'
-            : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+            : 'meeting-control-btn'
         }`}
         title="Toggle Meeting Chat"
       >
         <MessageSquare className="w-5 h-5" />
         {unreadCount > 0 && !isChatOpen && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-[9px] font-bold border border-dark-950 animate-bounce">
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-[9px] font-bold border border-dark-950 meeting-badge-border animate-bounce">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -174,12 +174,12 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
         className={`p-3 sm:p-3.5 rounded-2xl transition-all border relative flex items-center justify-center ${
           isParticipantsOpen
             ? 'bg-brand-600 text-white border-brand-500 shadow-glow-brand'
-            : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+            : 'meeting-control-btn'
         }`}
         title="View participants"
       >
         <Users className="w-5 h-5" />
-        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-[9px] font-bold border border-dark-950">
+        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-brand-500 text-white text-[9px] font-bold border border-dark-950 meeting-badge-border">
           {participantCount}
         </span>
       </button>
@@ -191,19 +191,19 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
           className={`p-3 sm:p-3.5 rounded-2xl transition-all border relative flex items-center justify-center ${
             isTranscriptOpen
               ? 'bg-indigo-600 text-white border-indigo-500 shadow-glow-brand'
-              : 'bg-dark-900/90 text-slate-200 border-white/10 hover:bg-white/10 hover:text-white'
+              : 'meeting-control-btn'
           }`}
           title="Toggle Meeting Transcript & Live Captions"
         >
           <FileText className="w-5 h-5" />
           {isTranscribing && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-dark-950 animate-pulse ring-2 ring-emerald-400/40" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-dark-950 meeting-badge-border animate-pulse ring-2 ring-emerald-400/40" />
           )}
           {transcriptSegmentCount !== undefined &&
             transcriptSegmentCount > 0 &&
             !isTranscriptOpen &&
             !isTranscribing && (
-              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-indigo-500 text-white text-[9px] font-bold border border-dark-950">
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-indigo-500 text-white text-[9px] font-bold border border-dark-950 meeting-badge-border">
                 {transcriptSegmentCount > 99 ? '99+' : transcriptSegmentCount}
               </span>
             )}
@@ -225,10 +225,10 @@ export const MeetingControls: React.FC<MeetingControlsProps> = ({
       {/* Leave Call */}
       <button
         onClick={onLeave}
-        className="px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm flex items-center space-x-1.5 transition-all border border-white/10"
+        className="px-3.5 sm:px-5 py-3 sm:py-3.5 rounded-2xl meeting-leave-btn font-semibold text-xs sm:text-sm flex items-center space-x-1.5 transition-all border"
         title="Leave meeting"
       >
-        <PhoneOff className="w-4 h-4 text-rose-400" />
+        <PhoneOff className="w-4 h-4 text-rose-500" />
         <span className="hidden sm:inline">Leave</span>
       </button>
     </div>

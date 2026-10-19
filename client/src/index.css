@@ -46,19 +46,37 @@ html.light body {
 }
 
 /* Containers and Panel Overrides */
-html.light .bg-dark-950 {
+html.light .bg-dark-950,
+html.light .bg-dark-950\/95,
+html.light .bg-dark-950\/90,
+html.light .bg-dark-950\/80,
+html.light .bg-dark-950\/70,
+html.light .bg-dark-950\/60,
+html.light .bg-dark-950\/50,
+html.light .bg-dark-950\/40 {
   background-color: #f8fafc !important;
 }
 
-html.light .bg-dark-900 {
+html.light .bg-dark-900,
+html.light .bg-dark-900\/95,
+html.light .bg-dark-900\/90,
+html.light .bg-dark-900\/80,
+html.light .bg-dark-900\/70,
+html.light .bg-dark-900\/60,
+html.light .bg-dark-900\/50,
+html.light .bg-dark-900\/40 {
   background-color: #ffffff !important;
 }
 
-html.light .bg-dark-850 {
+html.light .bg-dark-850,
+html.light .bg-dark-850\/90,
+html.light .bg-dark-850\/80 {
   background-color: #f1f5f9 !important;
 }
 
-html.light .bg-dark-800 {
+html.light .bg-dark-800,
+html.light .bg-dark-800\/90,
+html.light .bg-dark-800\/80 {
   background-color: #ffffff !important;
 }
 
@@ -349,6 +367,122 @@ html.light .hover\:text-white:hover {
 }
 
 /* ==========================================================================
+   Meeting Controls System (Dark & Light Modes)
+   ========================================================================== */
+
+/* Dark Mode Default Controls */
+.meeting-control-btn {
+  background-color: rgba(15, 23, 42, 0.9);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.meeting-control-btn:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.meeting-control-btn svg {
+  color: inherit;
+  stroke: currentColor;
+}
+
+.meeting-record-btn {
+  background-color: rgba(15, 23, 42, 0.9);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.meeting-record-btn:hover {
+  border-color: rgba(244, 63, 94, 0.5);
+  background-color: rgba(244, 63, 94, 0.1);
+  color: #ffffff;
+}
+
+.meeting-record-text {
+  color: #e2e8f0;
+}
+
+.meeting-leave-btn {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.meeting-leave-btn:hover {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Daylight / Light Mode Meeting Controls */
+html.light .meeting-control-btn {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .meeting-control-btn:hover {
+  background-color: #e2e8f0 !important;
+  color: #0284c7 !important;
+  border-color: #94a3b8 !important;
+}
+
+html.light .meeting-control-btn svg {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+
+html.light .meeting-control-btn:hover svg {
+  color: #0284c7 !important;
+  stroke: #0284c7 !important;
+}
+
+html.light .meeting-record-btn {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light .meeting-record-btn:hover {
+  background-color: #fff1f2 !important;
+  border-color: #fda4af !important;
+}
+
+html.light .meeting-record-text {
+  color: #0f172a !important;
+}
+
+html.light .meeting-record-btn:hover .meeting-record-text {
+  color: #e11d48 !important;
+}
+
+html.light .meeting-leave-btn {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .meeting-leave-btn:hover {
+  background-color: #fff1f2 !important;
+  color: #e11d48 !important;
+  border-color: #fca5a5 !important;
+}
+
+html.light .meeting-leave-btn svg {
+  color: #e11d48 !important;
+  stroke: #e11d48 !important;
+}
+
+html.light .meeting-badge-border {
+  border-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15) !important;
+}
+
+/* ==========================================================================
    PRESERVE WHITE TEXT EXCEPTIONS (Colored Buttons, Video Overlays & Badges)
    ========================================================================== */
 html.light button.bg-gradient-to-r,
@@ -357,10 +491,12 @@ html.light .bg-gradient-to-r *,
 html.light [class*="from-brand-"] *,
 html.light [class*="from-emerald-"] *,
 html.light [class*="bg-brand-600"] *,
+html.light [class*="bg-rose-700"] *,
 html.light [class*="bg-rose-600"] *,
 html.light [class*="bg-emerald-600"] *,
 html.light [class*="bg-indigo-600"] *,
 html.light [class*="bg-indigo-500"] *,
+html.light button[class*="bg-rose-700"],
 html.light button[class*="bg-rose-600"],
 html.light button[class*="bg-emerald-600"],
 html.light button[class*="bg-brand-600"],

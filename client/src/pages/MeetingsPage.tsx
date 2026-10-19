@@ -302,71 +302,87 @@ export const MeetingsPage: React.FC = () => {
                         : `/meetings/${meeting.roomId}`
                     )
                   }
-                  className="glass-card p-5 rounded-2xl border border-white/10 hover:border-brand-500/40 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                  className="glass-card p-5 rounded-2xl border border-white/10 hover:border-brand-500/40 cursor-pointer transition-all hover:-translate-y-0.5 group flex flex-col justify-between overflow-hidden"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                        meeting.status === 'active'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                          : meeting.status === 'scheduled'
-                            ? 'bg-brand-500/10 text-brand-400 border-brand-500/30'
-                            : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
-                      }`}
-                    >
-                      {meeting.status}
-                    </span>
-
-                    {/* Room ID Copy */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopy(meeting.roomId);
-                        }}
-                        className="text-xs font-mono px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center gap-1 border border-white/5"
-                        title="Copy Room ID"
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          meeting.status === 'active'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : meeting.status === 'scheduled'
+                              ? 'bg-brand-500/10 text-brand-400 border-brand-500/30'
+                              : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                        }`}
                       >
-                        {copiedRoomId === meeting.roomId ? (
-                          <Check className="w-3 h-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                        <span>{meeting.roomId}</span>
-                      </button>
+                        {meeting.status}
+                      </span>
 
-                      {isHost && (
+                      {/* Room ID Copy */}
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => handleDelete(e, meeting.id)}
-                          className="p-1 text-slate-400 hover:text-rose-400 rounded-md hover:bg-rose-500/10"
-                          title="Delete meeting"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(meeting.roomId);
+                          }}
+                          className="text-xs font-mono px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center gap-1 border border-white/5"
+                          title="Copy Room ID"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          {copiedRoomId === meeting.roomId ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                          <span>{meeting.roomId}</span>
                         </button>
-                      )}
-                    </div>
-                  </div>
 
-                  <h3 className="text-base font-bold text-white mb-1 group-hover:text-brand-300 transition-colors">
-                    {meeting.title}
-                  </h3>
-                  {meeting.description && (
-                    <p className="text-xs text-slate-400 line-clamp-2 mb-4">
-                      {meeting.description}
-                    </p>
-                  )}
-
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Host: {meeting.host?.name || 'You'}</span>
+                        {isHost && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(e, meeting.id)}
+                            className="p-1 text-slate-400 hover:text-rose-400 rounded-md hover:bg-rose-500/10"
+                            title="Delete meeting"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white mb-1 group-hover:text-brand-300 transition-colors">
+                      {meeting.title}
+                    </h3>
+                    {meeting.description && (
+                      <p className="text-xs text-slate-400 line-clamp-2 mb-4">
+                        {meeting.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-white/10 flex flex-col gap-2.5 text-xs text-slate-400">
+                    {/* Top sub-row: Host and Navigation Link */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">Host: {meeting.host?.name || 'You'}</span>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isEnded ? (
+                          <span className="text-indigo-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform text-xs">
+                            Summary <ArrowRight className="w-3.5 h-3.5" />
+                          </span>
+                        ) : (
+                          <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform text-xs">
+                            Join <ArrowRight className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom sub-row: Quick Action Pills */}
+                    <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -376,7 +392,7 @@ export const MeetingsPage: React.FC = () => {
                             title: meeting.title,
                           });
                         }}
-                        className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1 transition-colors border border-white/5 text-[11px]"
+                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1 transition-colors border border-white/10 text-[11px] font-medium"
                         title="View meeting transcript"
                       >
                         <FileText className="w-3 h-3 text-indigo-400" />
@@ -392,7 +408,7 @@ export const MeetingsPage: React.FC = () => {
                             title: meeting.title,
                           });
                         }}
-                        className="px-2 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 hover:text-white flex items-center gap-1 transition-colors border border-brand-500/20 text-[11px]"
+                        className="px-2.5 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 hover:text-white flex items-center gap-1 transition-colors border border-brand-500/20 text-[11px] font-medium"
                         title="View AI summary & action items"
                       >
                         <Sparkles className="w-3 h-3 text-brand-400" />
@@ -405,22 +421,12 @@ export const MeetingsPage: React.FC = () => {
                           e.stopPropagation();
                           navigate(`/meetings/${meeting.roomId}/dashboard`);
                         }}
-                        className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-white flex items-center gap-1 transition-colors border border-indigo-500/20 text-[11px]"
+                        className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-white flex items-center gap-1 transition-colors border border-indigo-500/20 text-[11px] font-medium"
                         title="Open Post-Meeting Dashboard"
                       >
                         <Activity className="w-3 h-3 text-indigo-400" />
                         <span>Dashboard</span>
                       </button>
-
-                      {isEnded ? (
-                        <span className="text-indigo-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                          Summary <ArrowRight className="w-3 h-3" />
-                        </span>
-                      ) : (
-                        <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                          Join <ArrowRight className="w-3 h-3" />
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
