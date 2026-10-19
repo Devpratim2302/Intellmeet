@@ -269,22 +269,65 @@ export const useWebRTC = (roomId: string) => {
   /**
    * Toggles local camera state and synchronizes with presence
    */
-  const toggleVideo = useCallback(() => {
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getVideoTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-        const newDisabled = !track.enabled;
-        isVideoDisabledRef.current = newDisabled;
-        setIsVideoDisabled(newDisabled);
+  const toggleVideo = useCallback(async () => {
+    const nextDisabled = !isVideoDisabledRef.current;
+    isVideoDisabledRef.current = nextDisabled;
+    setIsVideoDisabled(nextDisabled);
 
-        // Synchronize state with presence server
-        const socket = socketService.getSocket();
-        if (socket?.connected && roomId) {
-          socket.emit('participant-state-update', {
-            roomId,
-            isVideoOff: newDisabled,
-          });
+    const stream = cameraStreamRef.current || localStreamRef.current;
+    const videoTracks = stream?.getVideoTracks() || [];
+    const liveTrack = videoTracks.find((t) => t.readyState === 'live');
+
+    if (liveTrack) {
+      videoTracks.forEach((track) => {
+        track.enabled = !nextDisabled;
+      });
+      if (localStreamRef.current && localStreamRef.current !== stream) {
+        localStreamRef.current.getVideoTracks().forEach((t) => {
+          t.enabled = !nextDisabled;
+        });
+      }
+    } else if (!nextDisabled) {
+      try {
+        const freshStream = await mediaService.getUserMedia({ video: true, audio: false });
+        const freshTrack = freshStream.getVideoTracks()[0];
+        if (freshTrack) {
+          if (cameraStreamRef.current) {
+            cameraStreamRef.current.getVideoTracks().forEach((t) => {
+              cameraStreamRef.current?.removeTrack(t);
+              t.stop();
+            });
+            cameraStreamRef.current.addTrack(freshTrack);
+          } else {
+            cameraStreamRef.current = freshStream;
+          }
+
+          if (localStreamRef.current) {
+            localStreamRef.current.getVideoTracks().forEach((t) => {
+              localStreamRef.current?.removeTrack(t);
+            });
+            localStreamRef.current.addTrack(freshTrack);
+            const updated = new MediaStream(localStreamRef.current.getTracks());
+            localStreamRef.current = updated;
+            setLocalStream(updated);
+          } else {
+            setLocalStream(cameraStreamRef.current);
+          }
+
+          mediaService.replaceVideoTrack(peerConnections.current, freshTrack);
+          freshTrack.enabled = true;
         }
+      } catch (err) {
+        console.warn('[WebRTC] Failed to re-acquire video track:', err);
+      }
+    }
+
+    // Synchronize state with presence server
+    const socket = socketService.getSocket();
+    if (socket?.connected && roomId) {
+      socket.emit('participant-state-update', {
+        roomId,
+        isVideoOff: nextDisabled,
       });
     }
   }, [roomId]);

@@ -24,13 +24,19 @@ export const VideoTile: React.FC<VideoTileProps> = ({
   tag,
   className = '',
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const videoEl = videoRef.current;
+    if (videoEl && stream) {
+      if (videoEl.srcObject !== stream) {
+        videoEl.srcObject = stream;
+      }
+      if (!isVideoOff) {
+        videoEl.play().catch(() => {});
+      }
     }
-  }, [stream]);
+  }, [stream, isVideoOff]);
 
   // Speaking state only active if not muted
   const activeSpeaking = isSpeaking && !isMuted;
@@ -45,19 +51,27 @@ export const VideoTile: React.FC<VideoTileProps> = ({
             : 'border-white/10'
       } ${className}`}
     >
-      {/* Video Element */}
-      {stream && !isVideoOff ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isLocal} // always mute local audio to avoid feedback loop
-          className={`w-full h-full object-contain bg-black/60 ${
-            isLocal && !isScreenSharing ? 'transform -scale-x-100' : ''
-          }`}
-        />
-      ) : (
-        /* Video Off Avatar Placeholder */
+      {/* Video Element - kept in DOM so stream connection is never lost on mute/toggle */}
+      <video
+        ref={(el) => {
+          videoRef.current = el;
+          if (el && stream && el.srcObject !== stream) {
+            el.srcObject = stream;
+            if (!isVideoOff) {
+              el.play().catch(() => {});
+            }
+          }
+        }}
+        autoPlay
+        playsInline
+        muted={isLocal} // always mute local audio to avoid feedback loop
+        className={`w-full h-full object-contain bg-black/60 ${
+          isLocal && !isScreenSharing ? 'transform -scale-x-100' : ''
+        } ${!stream || isVideoOff ? 'hidden' : 'block'}`}
+      />
+
+      {/* Video Off Avatar Placeholder */}
+      {(!stream || isVideoOff) && (
         <div className="flex flex-col items-center justify-center space-y-2">
           <div
             className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-xl shadow-glow-brand transition-all ${
