@@ -49,10 +49,24 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
         // Add to presence tracking
         const participants = presenceManager.addParticipant(normalizedRoom, participant);
 
-        // Update DB meeting participants if meeting exists
+        // Check if meeting exists and if it is already completed/cancelled
         try {
           const meeting = await meetingService.getMeeting(normalizedRoom);
           if (meeting) {
+            if (meeting.status === 'completed' || meeting.status === 'cancelled') {
+              console.log(
+                `[Socket] Rejected join-meeting for room ${normalizedRoom}: meeting is already ${meeting.status}`
+              );
+              if (callback) {
+                callback({
+                  success: false,
+                  meetingEnded: true,
+                  message: 'This meeting has already ended.',
+                });
+              }
+              socket.emit('meeting-ended', { roomId: normalizedRoom });
+              return;
+            }
             await meetingService.addParticipant(meeting._id.toString(), user.userId);
           }
         } catch {
@@ -463,6 +477,38 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
 
     if (callback) {
       callback({ success: true });
+    }
+  });
+
+  /**
+   * Host ends the meeting for all participants
+   */
+  socket.on('end-meeting', async (data: { roomId: string }, callback?: (response: any) => void) => {
+    try {
+      const { roomId } = data;
+      if (!roomId) return;
+
+      const normalizedRoom = roomId.toLowerCase();
+      const socketRoom = `room:${normalizedRoom}`;
+
+      try {
+        await meetingService.updateMeeting(normalizedRoom, user.userId, { status: 'completed' });
+      } catch {
+        // If ad-hoc or already updated via REST API
+      }
+
+      // Broadcast meeting-ended to everyone in the room
+      io.to(socketRoom).emit('meeting-ended', { roomId: normalizedRoom });
+      console.log(`[Socket] Meeting ended for room ${normalizedRoom} by user ${user.name}`);
+
+      if (callback) {
+        callback({ success: true });
+      }
+    } catch (err: any) {
+      console.error('[Socket] Error in end-meeting handler:', err);
+      if (callback) {
+        callback({ success: false, message: err.message || 'Failed to end meeting' });
+      }
     }
   });
 };

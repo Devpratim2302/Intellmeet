@@ -59,8 +59,19 @@ class SocketService {
         if (response?.success) {
           resolve(response.data);
         } else {
-          reject(new Error(response?.message || 'Failed to join meeting'));
+          const err: any = new Error(response?.message || 'Failed to join meeting');
+          err.meetingEnded = Boolean(response?.meetingEnded);
+          reject(err);
         }
+      });
+    });
+  }
+
+  endMeeting(roomId: string): Promise<any> {
+    const socket = this.getSocket();
+    return new Promise((resolve) => {
+      socket.emit('end-meeting', { roomId }, (res: any) => {
+        resolve(res);
       });
     });
   }

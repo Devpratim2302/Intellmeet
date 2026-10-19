@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useAuth } from '../context/AuthContext';
 import { meetingApi } from '../services/meeting.api';
+import { socketService } from '../services/socket.service';
 import { VideoTile } from '../components/meeting/VideoTile';
 import { MeetingControls } from '../components/meeting/MeetingControls';
 import { ParticipantList } from '../components/meeting/ParticipantList';
@@ -10,7 +11,7 @@ import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
 import { useMeetingUiStore } from '../stores/meetingUiStore';
-import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles } from 'lucide-react';
+import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles, PhoneOff, ArrowLeft } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -19,6 +20,8 @@ export const MeetingRoomPage: React.FC = () => {
 
   const [meetingTitle, setMeetingTitle] = useState<string>('Meeting Room');
   const [meetingHostId, setMeetingHostId] = useState<string | undefined>();
+  const [meetingData, setMeetingData] = useState<any>(null);
+  const [isEndedLocally, setIsEndedLocally] = useState<boolean>(false);
   const [copied, setCopied] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -48,8 +51,12 @@ export const MeetingRoomPage: React.FC = () => {
       meetingApi
         .getMeeting(roomId)
         .then((m) => {
+          setMeetingData(m);
           setMeetingTitle(m.title);
-          setMeetingHostId(m.host?.id || (m.host as any));
+          setMeetingHostId(m.host?.id || (m.host as any)?._id || (m.host as any));
+          if (m.status === 'completed' || m.status === 'cancelled') {
+            setIsEndedLocally(true);
+          }
         })
         .catch(() => {
           // If ad-hoc room, keep default title
@@ -71,12 +78,15 @@ export const MeetingRoomPage: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // WebRTC Hook
+  const isEnded = isEndedLocally || meetingData?.status === 'completed' || meetingData?.status === 'cancelled';
+
+  // WebRTC Hook - disabled if meeting has already ended
   const {
     localStream,
     remotePeers,
     participants,
     isConnected,
+    isMeetingEnded,
     isAudioMuted,
     isVideoDisabled,
     isScreenSharing,
@@ -91,7 +101,16 @@ export const MeetingRoomPage: React.FC = () => {
     stopScreenShare,
     sendMessage,
     resetUnreadCount,
-  } = useWebRTC(roomId);
+  } = useWebRTC(roomId, !isEnded);
+
+  const hasConcluded = isEnded || isMeetingEnded;
+
+  // Stop any active hardware media tracks if meeting ended
+  useEffect(() => {
+    if (hasConcluded && localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+  }, [hasConcluded, localStream]);
 
   // Meeting Transcription Hook
   const {
@@ -115,16 +134,28 @@ export const MeetingRoomPage: React.FC = () => {
 
   const handleEndMeeting = async () => {
     if (window.confirm('End this meeting for all participants and proceed to the post-meeting dashboard?')) {
+      if (localStream) {
+        localStream.getTracks().forEach((t) => t.stop());
+      }
       try {
         await meetingApi.updateMeeting(roomId, { status: 'completed' });
       } catch (err) {
         console.warn('Failed to mark meeting completed:', err);
       }
+      try {
+        await socketService.endMeeting(roomId);
+      } catch {
+        // ignore
+      }
+      setIsEndedLocally(true);
       navigate(`/meetings/${roomId}/dashboard`);
     }
   };
 
   const handleLeave = () => {
+    if (localStream) {
+      localStream.getTracks().forEach((t) => t.stop());
+    }
     navigate(`/meetings/${roomId}/dashboard`);
   };
 
@@ -185,6 +216,78 @@ export const MeetingRoomPage: React.FC = () => {
       return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 max-w-6xl mx-auto w-full';
     return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto w-full';
   };
+
+  if (hasConcluded) {
+    return (
+      <div className="min-h-[calc(100vh-65px)] bg-dark-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-brand-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-lg w-full glass-card p-8 sm:p-10 rounded-3xl border border-white/10 shadow-2xl text-center flex flex-col items-center">
+          {/* Icon with glowing pulse */}
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/20">
+              <PhoneOff className="w-10 h-10" />
+            </div>
+            <span className="absolute -bottom-1 -right-1 px-2.5 py-0.5 rounded-full bg-dark-900 border border-rose-500/40 text-[10px] font-bold text-rose-400 uppercase tracking-wider">
+              Ended
+            </span>
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
+            This Meeting Has Ended
+          </h2>
+          <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+            The session has concluded. Re-joining the live call is disabled, but all transcripts, recordings, and AI-generated notes are ready.
+          </p>
+
+          {/* Meeting Details Box */}
+          <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 text-left space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Meeting Title</span>
+              <span className="font-semibold text-white truncate max-w-[200px]">{meetingTitle}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Room Code</span>
+              <span className="font-mono text-brand-300 font-semibold">{roomId}</span>
+            </div>
+            {meetingData?.host?.name && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">Host</span>
+                <span className="text-slate-200">{meetingData.host.name}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">Status</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                Completed
+              </span>
+            </div>
+          </div>
+
+          {/* Action Navigation Buttons */}
+          <div className="w-full space-y-3">
+            <Link
+              to={`/meetings/${roomId}/dashboard`}
+              className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
+            >
+              <Sparkles className="w-4 h-4 text-brand-200" />
+              <span>View Post-Meeting Dashboard & Summary</span>
+            </Link>
+
+            <Link
+              to="/meetings"
+              className="w-full py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-medium text-sm border border-white/10 flex items-center justify-center space-x-2 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to All Meetings</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-65px)] bg-dark-950 flex flex-col justify-between overflow-hidden">

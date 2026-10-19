@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { meetingApi } from '../services/meeting.api';
 import {
   Video as VideoIcon,
   VideoOff,
@@ -12,6 +13,9 @@ import {
   Sparkles,
   Shield,
   Users,
+  PhoneOff,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 
 export const JoinMeetingPage: React.FC = () => {
@@ -23,6 +27,8 @@ export const JoinMeetingPage: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+  const [endedRoomCode, setEndedRoomCode] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -75,16 +81,32 @@ export const JoinMeetingPage: React.FC = () => {
       .toLowerCase();
   };
 
-  const handleJoin = (e: React.FormEvent) => {
+  const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomId.trim()) return;
+
+    const cleanRoomId = extractMeetingCode(roomId);
+    setIsChecking(true);
+    setEndedRoomCode(null);
+
+    try {
+      const meeting = await meetingApi.getMeeting(cleanRoomId);
+      if (meeting.status === 'completed' || meeting.status === 'cancelled') {
+        setEndedRoomCode(cleanRoomId);
+        setIsChecking(false);
+        return;
+      }
+    } catch {
+      // If ad-hoc room or unpersisted, proceed normally
+    }
+
+    setIsChecking(false);
 
     // Clean up preview tracks before navigating into room
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
     }
 
-    const cleanRoomId = extractMeetingCode(roomId);
     navigate(`/meetings/${cleanRoomId}`);
   };
 
@@ -174,6 +196,25 @@ export const JoinMeetingPage: React.FC = () => {
             </p>
           </div>
 
+          {endedRoomCode && (
+            <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex flex-col space-y-2.5 animate-fade-in">
+              <div className="flex items-center space-x-2 font-bold text-rose-400">
+                <PhoneOff className="w-4 h-4 flex-shrink-0" />
+                <span>This meeting has already ended</span>
+              </div>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                The session was completed and is closed to live callers. You can still access the AI meeting notes, transcript, and dashboard.
+              </p>
+              <Link
+                to={`/meetings/${endedRoomCode}/dashboard`}
+                className="inline-flex items-center space-x-1.5 font-semibold text-brand-300 hover:text-white underline underline-offset-4 pt-1"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>View Meeting Summary & Dashboard →</span>
+              </Link>
+            </div>
+          )}
+
           <form onSubmit={handleJoin} className="space-y-5">
             <Input
               label="Room Identifier *"
@@ -187,6 +228,7 @@ export const JoinMeetingPage: React.FC = () => {
                 } else {
                   setRoomId(val);
                 }
+                if (endedRoomCode) setEndedRoomCode(null);
               }}
               icon={<Sparkles className="w-4 h-4" />}
             />
@@ -195,10 +237,11 @@ export const JoinMeetingPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
+              disabled={isChecking}
               className="w-full"
-              icon={<ArrowRight className="w-4 h-4" />}
+              icon={isChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
             >
-              Enter Meeting Room
+              {isChecking ? 'Checking Room...' : 'Enter Meeting Room'}
             </Button>
           </form>
 

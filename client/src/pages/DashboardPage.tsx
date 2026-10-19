@@ -19,6 +19,7 @@ import {
   Radio,
   Clock,
   ExternalLink,
+  FileText,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -206,11 +207,19 @@ export const DashboardPage: React.FC = () => {
             {meetings.map((meeting) => {
               const isHost =
                 meeting.host?.id === user?.id || (meeting.host as any) === user?.id;
+              const isEnded =
+                meeting.status === 'completed' || meeting.status === 'cancelled';
 
               return (
                 <div
                   key={meeting.id}
-                  onClick={() => navigate(`/meetings/${meeting.roomId}`)}
+                  onClick={() =>
+                    navigate(
+                      isEnded
+                        ? `/meetings/${meeting.roomId}/dashboard`
+                        : `/meetings/${meeting.roomId}`
+                    )
+                  }
                   className="glass-card p-6 rounded-3xl border border-white/10 hover:border-brand-500/40 cursor-pointer transition-all hover:-translate-y-1 flex flex-col justify-between group shadow-lg"
                 >
                   <div>
@@ -285,9 +294,15 @@ export const DashboardPage: React.FC = () => {
                       >
                         Dashboard
                       </button>
-                      <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                        Join Room <ExternalLink className="w-3 h-3" />
-                      </span>
+                      {isEnded ? (
+                        <span className="text-indigo-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          View Summary <FileText className="w-3 h-3" />
+                        </span>
+                      ) : (
+                        <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          Join Room <ExternalLink className="w-3 h-3" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

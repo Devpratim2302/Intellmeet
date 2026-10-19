@@ -290,10 +290,18 @@ export const MeetingsPage: React.FC = () => {
             {meetings.map((meeting) => {
               const isHost =
                 meeting.host?.id === user?.id || (meeting.host as any) === user?.id;
+              const isEnded =
+                meeting.status === 'completed' || meeting.status === 'cancelled';
               return (
                 <div
                   key={meeting.id}
-                  onClick={() => navigate(`/meetings/${meeting.roomId}`)}
+                  onClick={() =>
+                    navigate(
+                      isEnded
+                        ? `/meetings/${meeting.roomId}/dashboard`
+                        : `/meetings/${meeting.roomId}`
+                    )
+                  }
                   className="glass-card p-5 rounded-2xl border border-white/10 hover:border-brand-500/40 cursor-pointer transition-all hover:-translate-y-0.5 group"
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -404,9 +412,15 @@ export const MeetingsPage: React.FC = () => {
                         <span>Dashboard</span>
                       </button>
 
-                      <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                        Join <ArrowRight className="w-3 h-3" />
-                      </span>
+                      {isEnded ? (
+                        <span className="text-indigo-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                          Summary <ArrowRight className="w-3 h-3" />
+                        </span>
+                      ) : (
+                        <span className="text-brand-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                          Join <ArrowRight className="w-3 h-3" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

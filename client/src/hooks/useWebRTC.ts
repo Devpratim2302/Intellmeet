@@ -18,11 +18,12 @@ export interface RemotePeer {
   stream: MediaStream;
 }
 
-export const useWebRTC = (roomId: string) => {
+export const useWebRTC = (roomId: string, enabled: boolean = true) => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remotePeers, setRemotePeers] = useState<Map<string, RemotePeer>>(new Map());
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isMeetingEnded, setIsMeetingEnded] = useState<boolean>(false);
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(false);
   const [isVideoDisabled, setIsVideoDisabled] = useState<boolean>(false);
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
@@ -386,7 +387,7 @@ export const useWebRTC = (roomId: string) => {
    * Main WebRTC, Socket, Voice Detection, and Chat lifecycle
    */
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !enabled) return;
 
     let mounted = true;
     let vadCleanup = () => {};
@@ -428,7 +429,39 @@ export const useWebRTC = (roomId: string) => {
         addLog('join', `Successfully joined room ${roomId}`);
       } catch (err: any) {
         addLog('info', `Error joining room: ${err.message}`);
+        if (err?.meetingEnded) {
+          setIsMeetingEnded(true);
+          if (cameraStreamRef.current) {
+            mediaService.stopMediaStream(cameraStreamRef.current);
+            cameraStreamRef.current = null;
+          }
+          if (screenStreamRef.current) {
+            mediaService.stopMediaStream(screenStreamRef.current);
+            screenStreamRef.current = null;
+          }
+          setLocalStream(null);
+          return;
+        }
       }
+
+      /**
+       * Handle Meeting Ended broadcast
+       */
+      socket.on('meeting-ended', () => {
+        if (!mounted) return;
+        addLog('leave', 'Meeting was concluded by host');
+        setIsMeetingEnded(true);
+        setIsConnected(false);
+        if (cameraStreamRef.current) {
+          mediaService.stopMediaStream(cameraStreamRef.current);
+          cameraStreamRef.current = null;
+        }
+        if (screenStreamRef.current) {
+          mediaService.stopMediaStream(screenStreamRef.current);
+          screenStreamRef.current = null;
+        }
+        setLocalStream(null);
+      });
 
       /**
        * 1. Room participants list received upon joining
@@ -660,14 +693,16 @@ export const useWebRTC = (roomId: string) => {
       socket.off('webrtc-answer');
       socket.off('webrtc-ice-candidate');
       socket.off('user-left');
+      socket.off('meeting-ended');
     };
-  }, [roomId, initLocalStream, createPeerConnection, closePeerConnection, addLog]);
+  }, [roomId, enabled, initLocalStream, createPeerConnection, closePeerConnection, addLog]);
 
   return {
     localStream,
     remotePeers: Array.from(remotePeers.values()),
     participants,
     isConnected,
+    isMeetingEnded,
     isAudioMuted,
     isVideoDisabled,
     isScreenSharing,
