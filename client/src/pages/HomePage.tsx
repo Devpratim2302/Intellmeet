@@ -47,10 +47,13 @@ export const HomePage: React.FC<HomePageProps> = ({ autoOpenDemo = false }) => {
       {/* Hero Section */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 pb-16 text-center flex-1 flex flex-col justify-center items-center">
         {/* Headline */}
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-10 leading-tight">
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
           Next-Generation Meetings Powered by{' '}
           <span className="gradient-text">IntellMeet</span>
         </h1>
+        <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 font-medium">
+          AI-Powered Enterprise Meeting & Collaboration Platform
+        </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -171,7 +174,7 @@ export const HomePage: React.FC<HomePageProps> = ({ autoOpenDemo = false }) => {
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-6 px-4 text-center text-xs text-slate-500">
-        <p>Powered by IntellMeet</p>
+        <p>IntellMeet — AI-Powered Enterprise Meeting & Collaboration Platform</p>
       </footer>
     </div>
   );

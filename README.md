@@ -1,4 +1,4 @@
-# IntellMeet
+# IntellMeet — AI-Powered Enterprise Meeting & Collaboration Platform
 
 **IntellMeet** is an AI-powered enterprise meeting and collaboration platform designed for modern remote teams. It combines zero-latency WebRTC video conferencing, real-time Socket.io messaging, Google Gemini speech transcription and intelligent summarization, Kanban task management, and multi-tenant workspace collaboration into a unified solution.
 
