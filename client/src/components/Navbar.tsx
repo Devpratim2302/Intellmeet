@@ -48,12 +48,12 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-500 flex items-center justify-center shadow-glow-brand group-hover:scale-105 transition-transform duration-200">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform duration-200 logo-brand-icon">
             <Video className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+          <span className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5 logo-brand-text">
             IntellMeet
-            <Sparkles className="w-3.5 h-3.5 text-brand-400 fill-brand-400" />
+            <Sparkles className="w-3.5 h-3.5 text-brand-400 fill-brand-400 logo-brand-sparkle" />
           </span>
         </Link>
 
