@@ -49,15 +49,10 @@ export const Navbar: React.FC = () => {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-500 flex items-center justify-center shadow-glow-brand group-hover:scale-105 transition-transform duration-200">
             <Video className="w-5 h-5 text-white" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-              IntellMeet
-              <Sparkles className="w-3.5 h-3.5 text-brand-400 fill-brand-400" />
-            </span>
-            <span className="text-[10px] tracking-wider uppercase text-slate-400 font-semibold">
-              Team 3 Edition
-            </span>
-          </div>
+          <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+            IntellMeet
+            <Sparkles className="w-3.5 h-3.5 text-brand-400 fill-brand-400" />
+          </span>
         </Link>
 
         {/* Right Nav */}
