@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, LogIn, AlertCircle, Loader2, Sparkles, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
@@ -17,24 +17,15 @@ export const LoginPage: React.FC = () => {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleOneClickDemo = async () => {
-    setError(null);
-    setIsDemoLoading(true);
-    try {
-      setEmail('mentor.evaluator@intellmeet.io');
-      setPassword('DemoPassword2026!');
-      await loginDemo();
-      navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to authenticate demo account.');
-    } finally {
-      setIsDemoLoading(false);
-    }
+  const fillDemoCredentials = () => {
+    setEmail('mentor.evaluator@intellmeet.io');
+    setPassword('DemoPassword2026!');
+    setIsDemoMode(true);
   };
 
   useEffect(() => {
     if (searchParams.get('demo') === 'true') {
-      handleOneClickDemo();
+      fillDemoCredentials();
     }
   }, [searchParams]);
 
@@ -44,7 +35,11 @@ export const LoginPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await login({ email, password });
+      if (isDemoMode) {
+        await loginDemo();
+      } else {
+        await login({ email, password });
+      }
       navigate(from, { replace: true });
     } catch (err: any) {
       const msg =
@@ -54,11 +49,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleQuickFill = () => {
-    setEmail('mentor.evaluator@intellmeet.io');
-    setPassword('DemoPassword2026!');
   };
 
   return (
@@ -75,53 +65,23 @@ export const LoginPage: React.FC = () => {
             Sign In to IntellMeet
           </h1>
           <p className="text-sm text-slate-400 mt-1.5">
-            Enter your credentials or test with 1-click evaluator access
+            Enter your credentials or use the demo login
           </p>
         </div>
 
-        {/* 1-Click Demo Evaluation Banner */}
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-brand-500/15 border border-emerald-500/30 shadow-lg">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                Mentor / Evaluation Mode
-              </span>
-            </div>
-            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-500/30 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" />
-              Admin Access
-            </span>
-          </div>
-          <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-            Evaluating this project? Click below to autofill and instantly launch into the workspace with full permissions.
-          </p>
+        {/* Demo Toggle Button */}
+        <div className="mb-6 flex items-center justify-center">
           <button
             type="button"
-            disabled={isSubmitting || isDemoLoading}
-            onClick={handleOneClickDemo}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-brand-600 hover:from-emerald-500 hover:to-brand-500 text-white font-semibold text-xs flex items-center justify-center space-x-2 shadow-md transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
+            onClick={fillDemoCredentials}
+            className={`w-full py-2.5 px-4 rounded-xl text-sm font-semibold transition-all transform hover:-translate-y-0.5 ${
+              isDemoMode
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
+            }`}
           >
-            {isDemoLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Setting up Evaluator Access...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 text-emerald-200" />
-                <span>1-Click Evaluator Auto-Login</span>
-              </>
-            )}
+            {isDemoMode ? '✓ Demo Details Filled' : 'Click for Demo Details'}
           </button>
-        </div>
-
-        <div className="relative flex py-2 items-center mb-4">
-          <div className="flex-grow border-t border-white/10"></div>
-          <span className="flex-shrink mx-3 text-[11px] text-slate-500 uppercase font-semibold tracking-wider">
-            Or Manual Credentials
-          </span>
-          <div className="flex-grow border-t border-white/10"></div>
         </div>
 
         {error && (
@@ -143,7 +103,10 @@ export const LoginPage: React.FC = () => {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setIsDemoMode(false);
+                }}
                 placeholder="name@company.com"
                 className="w-full pl-11 pr-4 py-2.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
               />
@@ -161,7 +124,10 @@ export const LoginPage: React.FC = () => {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setIsDemoMode(false);
+                }}
                 placeholder="••••••••"
                 className="w-full pl-11 pr-4 py-2.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
               />
@@ -172,12 +138,21 @@ export const LoginPage: React.FC = () => {
             id="login-submit-btn"
             type="submit"
             disabled={isSubmitting}
-            className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm flex items-center justify-center space-x-2 shadow-glow-brand transition-all transform disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full mt-2 py-3 rounded-xl font-semibold text-sm flex items-center justify-center space-x-2 shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isDemoMode
+                ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white shadow-emerald-500/20'
+                : 'bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-glow-brand'
+            }`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Authenticating...</span>
+                <span>{isDemoMode ? 'Opening Dashboard...' : 'Authenticating...'}</span>
+              </>
+            ) : isDemoMode ? (
+              <>
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
               </>
             ) : (
               <>
@@ -188,20 +163,7 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo Quick Fill Helper */}
-        <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-          <span>Need demo credentials?</span>
-          <button
-            type="button"
-            onClick={handleQuickFill}
-            className="text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 hover:underline"
-          >
-            <Sparkles className="w-3 h-3" />
-            Quick fill (Mentor)
-          </button>
-        </div>
-
-        <div className="mt-4 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-sm text-slate-400">
           Don't have an account?{' '}
           <Link
             to="/register"
