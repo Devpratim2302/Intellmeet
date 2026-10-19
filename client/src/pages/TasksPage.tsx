@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '../services/task.api';
@@ -561,171 +562,176 @@ export const TasksPage: React.FC = () => {
       )}
 
       {/* Task Creation & Edit Modal */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm animate-fade-in"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
-          }}
-        >
-          <div className="glass-panel border border-white/10 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <CheckSquare className="w-5 h-5 text-brand-400" />
-                <span>{editingTask ? 'Edit Task' : 'Create New Task'}</span>
-              </h2>
-              <button
-                onClick={closeModal}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Title */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Implement WebRTC re-negotiation handler"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none"
-                />
+      {isModalOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm animate-fade-in"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closeModal();
+            }}
+          >
+            <div
+              className="glass-panel border border-white/10 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <CheckSquare className="w-5 h-5 text-brand-400" />
+                  <span>{editingTask ? 'Edit Task' : 'Create New Task'}</span>
+                </h2>
+                <button
+                  onClick={closeModal}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Detailed notes or context..."
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full px-4 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Status and Priority */}
-              <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Title */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as TaskStatus)}
-                    className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none"
-                  >
-                    <option value="todo">TODO</option>
-                    <option value="in_progress">IN PROGRESS</option>
-                    <option value="completed">COMPLETED</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={formPriority}
-                    onChange={(e) => setFormPriority(e.target.value as TaskPriority)}
-                    className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none"
-                  >
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Assignee & Due Date */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                    Assignee
+                    Task Title *
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Bob or team member"
-                    value={formAssigneeName}
-                    onChange={(e) => setFormAssigneeName(e.target.value)}
-                    className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none"
+                    required
+                    placeholder="e.g. Implement WebRTC re-negotiation handler"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none"
                   />
                 </div>
 
+                {/* Description */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                    Due Date
+                    Description
                   </label>
-                  <input
-                    type="date"
-                    value={formDueDate}
-                    onChange={(e) => setFormDueDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none text-slate-300"
+                  <textarea
+                    rows={3}
+                    placeholder="Detailed notes or context..."
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    className="w-full px-4 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none"
                   />
                 </div>
-              </div>
 
-              {/* Workspace Link */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Workspace (Optional)
-                </label>
-                <select
-                  value={formWorkspaceId}
-                  onChange={(e) => setFormWorkspaceId(e.target.value)}
-                  className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none"
-                >
-                  <option value="">No workspace</option>
-                  {workspaces.map((w: any) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                {/* Status and Priority */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value as TaskStatus)}
+                      className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none"
+                    >
+                      <option value="todo">TODO</option>
+                      <option value="in_progress">IN PROGRESS</option>
+                      <option value="completed">COMPLETED</option>
+                    </select>
+                  </div>
 
-              {/* Action Buttons */}
-              <div className="pt-3 border-t border-white/10 flex items-center justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium transition-colors"
-                >
-                  Cancel
-                </button>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                      Priority
+                    </label>
+                    <select
+                      value={formPriority}
+                      onChange={(e) => setFormPriority(e.target.value as TaskPriority)}
+                      className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none"
+                    >
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
 
-                <button
-                  type="submit"
-                  disabled={
-                    createTaskMutation.isPending ||
-                    updateTaskMutation.isPending ||
-                    !formTitle.trim()
-                  }
-                  className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center space-x-2 disabled:opacity-50 transition-colors"
-                >
-                  {createTaskMutation.isPending || updateTaskMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>{editingTask ? 'Save Changes' : 'Create Task'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Assignee & Due Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                      Assignee
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Bob or team member"
+                      value={formAssigneeName}
+                      onChange={(e) => setFormAssigneeName(e.target.value)}
+                      className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                      Due Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formDueDate}
+                      onChange={(e) => setFormDueDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none text-slate-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Workspace Link */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Workspace (Optional)
+                  </label>
+                  <select
+                    value={formWorkspaceId}
+                    onChange={(e) => setFormWorkspaceId(e.target.value)}
+                    className="w-full px-3 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs focus:outline-none"
+                  >
+                    <option value="">No workspace</option>
+                    {workspaces.map((w: any) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-3 border-t border-white/10 flex items-center justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={
+                      createTaskMutation.isPending ||
+                      updateTaskMutation.isPending ||
+                      !formTitle.trim()
+                    }
+                    className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center space-x-2 disabled:opacity-50 transition-colors"
+                  >
+                    {createTaskMutation.isPending || updateTaskMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>{editingTask ? 'Save Changes' : 'Create Task'}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ArrowRight, X, Mail, Lock, LogIn, Loader2 } from 'lucide-react';
@@ -93,84 +94,94 @@ export const HomePage: React.FC<HomePageProps> = ({ autoOpenDemo = false }) => {
       </main>
 
       {/* Demo Login Popup Modal */}
-      {showDemoModal && (
-        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            {/* Close Button */}
-            <button
-              onClick={() => setShowDemoModal(false)}
-              className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+      {showDemoModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowDemoModal(false);
+            }}
+          >
+            <div
+              className="w-full max-w-md glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Header */}
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3 text-emerald-400">
-                <LogIn className="w-6 h-6" />
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Demo Login</h2>
-              <p className="text-xs text-slate-400 mt-1">Credentials pre-filled for demo access</p>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleDemoSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="email"
-                    readOnly
-                    value={demoEmail}
-                    className="w-full pl-10 pr-4 py-2.5 bg-dark-900/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="password"
-                    readOnly
-                    value={demoPassword}
-                    className="w-full pl-10 pr-4 py-2.5 bg-dark-900/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
-                  />
-                </div>
-              </div>
-
+              {/* Close Button */}
               <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-semibold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
+                onClick={() => setShowDemoModal(false)}
+                className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Opening Dashboard...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Go to Dashboard</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
+                <X className="w-5 h-5" />
               </button>
-            </form>
-          </div>
-        </div>
-      )}
+
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3 text-emerald-400">
+                  <LogIn className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl font-bold text-white tracking-tight">Demo Login</h2>
+                <p className="text-xs text-slate-400 mt-1">Credentials pre-filled for demo access</p>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleDemoSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      readOnly
+                      value={demoEmail}
+                      className="w-full pl-10 pr-4 py-2.5 bg-dark-900/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="password"
+                      readOnly
+                      value={demoPassword}
+                      className="w-full pl-10 pr-4 py-2.5 bg-dark-900/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-semibold text-sm flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Opening Dashboard...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-6 px-4 text-center text-xs text-slate-500">

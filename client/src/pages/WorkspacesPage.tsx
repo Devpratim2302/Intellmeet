@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Briefcase,
   Plus,
@@ -277,227 +278,247 @@ export const WorkspacesPage: React.FC = () => {
         )}
 
         {/* Create Workspace Modal */}
-        {isCreating && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="w-full max-w-md bg-dark-900 border border-white/10 rounded-3xl shadow-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-brand-400" />
-                  <span>Create Team Workspace</span>
-                </h3>
-                <button
-                  onClick={() => setIsCreating(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateWorkspace} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-medium text-slate-300 mb-1.5">Workspace Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Core Engineering, Product Design"
-                    required
-                    className="w-full px-3 py-2 bg-dark-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-medium text-slate-300 mb-1.5">Description (Optional)</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What does this team or workspace collaborate on?"
-                    rows={3}
-                    className="w-full px-3 py-2 bg-dark-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-2">
+        {isCreating &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsCreating(false);
+              }}
+            >
+              <div
+                className="w-full max-w-md bg-dark-900 border border-white/10 rounded-3xl shadow-2xl p-6 space-y-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-brand-400" />
+                    <span>Create Team Workspace</span>
+                  </h3>
                   <button
-                    type="button"
                     onClick={() => setIsCreating(false)}
-                    className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all shadow-md shadow-brand-600/30 disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Creating...' : 'Create Workspace'}
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        )}
+
+                <form onSubmit={handleCreateWorkspace} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-medium text-slate-300 mb-1.5">Workspace Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Core Engineering, Product Design"
+                      required
+                      className="w-full px-3 py-2 bg-dark-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-slate-300 mb-1.5">Description (Optional)</label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="What does this team or workspace collaborate on?"
+                      rows={3}
+                      className="w-full px-3 py-2 bg-dark-800 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreating(false)}
+                      className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all shadow-md shadow-brand-600/30 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Creating...' : 'Create Workspace'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body
+          )}
 
         {/* Manage Members Modal */}
-        {isManagingMembers && selectedWorkspace && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="w-full max-w-2xl bg-dark-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-              <div className="p-5 border-b border-white/10 flex items-center justify-between bg-dark-950/50">
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Users className="w-5 h-5 text-brand-400" />
-                    <span>{selectedWorkspace.name} — Members</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Your role: <span className="font-semibold text-brand-300 uppercase text-[10px]">{userRole}</span>
-                  </p>
+        {isManagingMembers && selectedWorkspace &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsManagingMembers(false);
+              }}
+            >
+              <div
+                className="w-full max-w-2xl bg-dark-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-5 border-b border-white/10 flex items-center justify-between bg-dark-950/50">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Users className="w-5 h-5 text-brand-400" />
+                      <span>{selectedWorkspace.name} — Members</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Your role: <span className="font-semibold text-brand-300 uppercase text-[10px]">{userRole}</span>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setIsManagingMembers(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => setIsManagingMembers(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+                <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                  {/* Add Member Form (Owners / Admins only) */}
+                  {(userRole === 'owner' || userRole === 'admin') && (
+                    <form
+                      onSubmit={handleAddMember}
+                      className="p-4 rounded-2xl bg-dark-800/80 border border-white/10 space-y-3 text-xs"
+                    >
+                      <h4 className="font-bold text-white flex items-center gap-1.5">
+                        <UserPlus className="w-4 h-4 text-brand-400" />
+                        <span>Add Member</span>
+                      </h4>
 
-              <div className="p-6 overflow-y-auto space-y-6 flex-1">
-                {/* Add Member Form (Owners / Admins only) */}
-                {(userRole === 'owner' || userRole === 'admin') && (
-                  <form
-                    onSubmit={handleAddMember}
-                    className="p-4 rounded-2xl bg-dark-800/80 border border-white/10 space-y-3 text-xs"
-                  >
-                    <h4 className="font-bold text-white flex items-center gap-1.5">
-                      <UserPlus className="w-4 h-4 text-brand-400" />
-                      <span>Add Member</span>
+                      {memberActionError && (
+                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px]">
+                          {memberActionError}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="email"
+                          value={newMemberEmail}
+                          onChange={(e) => setNewMemberEmail(e.target.value)}
+                          placeholder="colleague@intellmeet.io"
+                          required
+                          className="flex-1 px-3 py-2 bg-dark-900 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                        />
+                        <select
+                          value={newMemberRole}
+                          onChange={(e) => setNewMemberRole(e.target.value as WorkspaceRole)}
+                          className="px-3 py-2 bg-dark-900 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
+                        >
+                          <option value="member">Member</option>
+                          <option value="admin">Admin</option>
+                          <option value="viewer">Viewer</option>
+                        </select>
+                        <button
+                          type="submit"
+                          disabled={isAddingMember}
+                          className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-brand-600/30 disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {isAddingMember ? 'Adding...' : 'Add'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* Member List */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Current Members ({selectedWorkspace.members.length})
                     </h4>
 
-                    {memberActionError && (
-                      <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px]">
-                        {memberActionError}
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      {selectedWorkspace.members.map((member) => {
+                        const memberUser = member.user as any;
+                        const isTargetOwner = selectedWorkspace.owner?.id === memberUser?._id || selectedWorkspace.owner === memberUser?._id;
+                        const canManage = (userRole === 'owner' || userRole === 'admin') && !isTargetOwner;
 
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="email"
-                        value={newMemberEmail}
-                        onChange={(e) => setNewMemberEmail(e.target.value)}
-                        placeholder="colleague@intellmeet.io"
-                        required
-                        className="flex-1 px-3 py-2 bg-dark-900 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
-                      />
-                      <select
-                        value={newMemberRole}
-                        onChange={(e) => setNewMemberRole(e.target.value as WorkspaceRole)}
-                        className="px-3 py-2 bg-dark-900 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500"
-                      >
-                        <option value="member">Member</option>
-                        <option value="admin">Admin</option>
-                        <option value="viewer">Viewer</option>
-                      </select>
-                      <button
-                        type="submit"
-                        disabled={isAddingMember}
-                        className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-brand-600/30 disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {isAddingMember ? 'Adding...' : 'Add'}
-                      </button>
+                        return (
+                          <div
+                            key={memberUser?._id || memberUser?.id}
+                            className="p-3.5 rounded-2xl bg-dark-800/60 border border-white/5 flex items-center justify-between text-xs"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs uppercase">
+                                {memberUser?.name?.charAt(0) || 'U'}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-100 flex items-center gap-1.5">
+                                  <span>{memberUser?.name}</span>
+                                  {memberUser?._id === user?.id && (
+                                    <span className="text-[10px] text-brand-300 font-normal">(You)</span>
+                                  )}
+                                </p>
+                                <p className="text-[11px] text-slate-400">{memberUser?.email}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                              {canManage ? (
+                                <select
+                                  value={member.role}
+                                  onChange={(e) =>
+                                    handleUpdateRole(
+                                      memberUser?._id || memberUser?.id,
+                                      e.target.value as WorkspaceRole
+                                    )
+                                  }
+                                  className="px-2.5 py-1 bg-dark-900 border border-white/10 rounded-lg text-[11px] text-slate-200 focus:outline-none"
+                                >
+                                  <option value="admin">Admin</option>
+                                  <option value="member">Member</option>
+                                  <option value="viewer">Viewer</option>
+                                </select>
+                              ) : (
+                                <span
+                                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                    member.role === 'owner'
+                                      ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                      : member.role === 'admin'
+                                        ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
+                                        : 'bg-brand-500/10 text-brand-300 border-brand-500/30'
+                                  }`}
+                                >
+                                  {member.role}
+                                </span>
+                              )}
+
+                              {canManage && (
+                                <button
+                                  onClick={() => handleRemoveMember(memberUser?._id || memberUser?.id)}
+                                  className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
+                                  title="Remove member"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </form>
-                )}
-
-                {/* Member List */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                    Current Members ({selectedWorkspace.members.length})
-                  </h4>
-
-                  <div className="space-y-2">
-                    {selectedWorkspace.members.map((member) => {
-                      const memberUser = member.user as any;
-                      const isTargetOwner = selectedWorkspace.owner?.id === memberUser?._id || selectedWorkspace.owner === memberUser?._id;
-                      const canManage = (userRole === 'owner' || userRole === 'admin') && !isTargetOwner;
-
-                      return (
-                        <div
-                          key={memberUser?._id || memberUser?.id}
-                          className="p-3.5 rounded-2xl bg-dark-800/60 border border-white/5 flex items-center justify-between text-xs"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs uppercase">
-                              {memberUser?.name?.charAt(0) || 'U'}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-slate-100 flex items-center gap-1.5">
-                                <span>{memberUser?.name}</span>
-                                {memberUser?._id === user?.id && (
-                                  <span className="text-[10px] text-brand-300 font-normal">(You)</span>
-                                )}
-                              </p>
-                              <p className="text-[11px] text-slate-400">{memberUser?.email}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            {canManage ? (
-                              <select
-                                value={member.role}
-                                onChange={(e) =>
-                                  handleUpdateRole(
-                                    memberUser?._id || memberUser?.id,
-                                    e.target.value as WorkspaceRole
-                                  )
-                                }
-                                className="px-2.5 py-1 bg-dark-900 border border-white/10 rounded-lg text-[11px] text-slate-200 focus:outline-none"
-                              >
-                                <option value="admin">Admin</option>
-                                <option value="member">Member</option>
-                                <option value="viewer">Viewer</option>
-                              </select>
-                            ) : (
-                              <span
-                                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                                  member.role === 'owner'
-                                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                                    : member.role === 'admin'
-                                      ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
-                                      : 'bg-brand-500/10 text-brand-300 border-brand-500/30'
-                                }`}
-                              >
-                                {member.role}
-                              </span>
-                            )}
-
-                            {canManage && (
-                              <button
-                                onClick={() => handleRemoveMember(memberUser?._id || memberUser?.id)}
-                                className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
-                                title="Remove member"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
-              </div>
 
-              <div className="p-4 border-t border-white/10 bg-dark-950/60 flex justify-end">
-                <button
-                  onClick={() => setIsManagingMembers(false)}
-                  className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium"
-                >
-                  Done
-                </button>
+                <div className="p-4 border-t border-white/10 bg-dark-950/60 flex justify-end">
+                  <button
+                    onClick={() => setIsManagingMembers(false)}
+                    className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </div>,
+            document.body
+          )}
       </div>
     </div>
   );

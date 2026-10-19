@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FileText,
   X,
@@ -92,9 +93,17 @@ export const TranscriptViewerModal: React.FC<TranscriptViewerModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-dark-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-2xl bg-dark-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-dark-950/50">
           <div className="flex items-center space-x-3">
@@ -239,6 +248,7 @@ export const TranscriptViewerModal: React.FC<TranscriptViewerModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
