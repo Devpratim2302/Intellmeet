@@ -79,7 +79,7 @@ export const DashboardPage: React.FC = () => {
             !
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            IntellMeet Workspace • AI-Powered Collaboration Platform
+            IntellMeet Workspace
           </p>
         </div>
 
