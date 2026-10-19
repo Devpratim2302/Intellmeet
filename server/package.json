@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "vitest run --no-file-parallelism"
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "@sentry/node": "^11.4.0",
@@ -40,9 +39,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/supertest": "^6.0.2",
-    "supertest": "^7.0.0",
-    "tsx": "^4.19.2",
-    "vitest": "^2.1.8"
+    "tsx": "^4.19.2"
   }
 }

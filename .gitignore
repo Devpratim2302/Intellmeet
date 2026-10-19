@@ -5,10 +5,13 @@ node_modules/
 
 # Production builds & compilation outputs
 dist/
+**/dist/
 build/
+**/build/
 .next/
 out/
 *.tsbuildinfo
+**/*.tsbuildinfo
 
 # Local environment files and secrets
 .env
@@ -45,3 +48,19 @@ Thumbs.db
 # Testing coverage & temporary test outputs
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+test-output/
+reports/
+tests/**/reports/
+tests/**/load-test-results.json
+tests/**/security-audit-report.json
+tests/**/zap-report.*
+*-report.json
+*-report.html
+*-results.json
+
+# Caches
+.cache/
+.eslintcache
+.turbo/

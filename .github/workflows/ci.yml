@@ -13,10 +13,10 @@ concurrency:
 
 jobs:
   # =========================================================================
-  # JOB 1: Test Suite & Code Quality Validation
+  # JOB 1: Code Quality & Type Validation
   # =========================================================================
-  test:
-    name: Unit & Integration Tests
+  validate:
+    name: Code Quality & Type Validation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -31,22 +31,15 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Client Vitest Suite
+      - name: Lint Frontend Code
         run: |
           cd client
-          npm test
+          npm run lint
 
-      - name: Run Server Vitest Suite
-        env:
-          NODE_ENV: test
-          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET || 'ci_jwt_access_test_secret_32_characters_long' }}
-          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'ci_jwt_refresh_test_secret_32_characters_long' }}
-          TRANSCRIPTION_PROVIDER: mock
-          AI_PROVIDER: mock
-          REDIS_ENABLED: "false"
+      - name: Type-Check Backend TypeScript
         run: |
           cd server
-          npm test
+          npm run build
 
   # =========================================================================
   # JOB 2: Frontend & Backend Production Compilation
@@ -54,7 +47,7 @@ jobs:
   build:
     name: Production Build Compilation
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [validate]
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4

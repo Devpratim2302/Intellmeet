@@ -93,7 +93,7 @@ export const MeetingsPage: React.FC = () => {
     return trimmed
       .replace(/.*\/meetings\//i, '')
       .replace(/.*\/room\//i, '')
-      .split(/[?#\/]/)[0]
+      .split(/[?#/]/)[0]
       .trim()
       .toLowerCase();
   };
