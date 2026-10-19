@@ -562,7 +562,12 @@ export const TasksPage: React.FC = () => {
 
       {/* Task Creation & Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm animate-fade-in">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-sm animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
           <div className="glass-panel border border-white/10 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">

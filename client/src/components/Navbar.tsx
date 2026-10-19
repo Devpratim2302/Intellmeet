@@ -44,7 +44,7 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 glass-panel border-b border-white/10 px-4 sm:px-8 py-3.5 backdrop-blur-md">
+    <nav className="sticky top-0 z-30 glass-panel border-b border-white/10 px-4 sm:px-8 py-3.5 backdrop-blur-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2.5 group">

@@ -93,7 +93,7 @@ export const TranscriptViewerModal: React.FC<TranscriptViewerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-2xl bg-dark-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between bg-dark-950/50">

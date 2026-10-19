@@ -94,7 +94,7 @@ export const HomePage: React.FC<HomePageProps> = ({ autoOpenDemo = false }) => {
 
       {/* Demo Login Popup Modal */}
       {showDemoModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             {/* Close Button */}
             <button
