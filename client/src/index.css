@@ -138,6 +138,51 @@ html.light .logo-brand-sparkle {
   filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.5));
 }
 
+/* Bright Daylight Icons for Action Cards & Join by Code */
+html.light .join-by-code-icon {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 6px 20px -2px rgba(99, 102, 241, 0.45) !important;
+}
+
+html.light .join-by-code-icon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+html.light .action-card-brand {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 6px 20px -2px rgba(2, 132, 199, 0.45) !important;
+}
+
+html.light .action-card-brand svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+html.light .action-card-purple {
+  background: linear-gradient(135deg, #9333ea 0%, #c026d3 100%) !important;
+  border-color: #c084fc !important;
+  box-shadow: 0 6px 20px -2px rgba(168, 85, 247, 0.45) !important;
+}
+
+html.light .action-card-purple svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+html.light .join-with-code-btn {
+  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #4338ca !important;
+  font-weight: 600 !important;
+}
+
+html.light .join-with-code-btn .join-by-code-svg {
+  color: #4f46e5 !important;
+}
+
 /* High-Contrast Vibrant Gradient Text in Light Mode */
 html.light .gradient-text {
   background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%) !important;

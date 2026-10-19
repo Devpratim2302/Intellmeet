@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Sparkles,
   Shield,
+  Users,
 } from 'lucide-react';
 
 export const JoinMeetingPage: React.FC = () => {
@@ -159,6 +160,9 @@ export const JoinMeetingPage: React.FC = () => {
         {/* Right: Join Form */}
         <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative">
           <div className="mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 shadow-glow-purple join-by-code-icon">
+              <Users className="w-6 h-6" />
+            </div>
             <span className="text-xs font-semibold text-brand-400 uppercase tracking-wider block mb-1">
               Ready to collaborate?
             </span>

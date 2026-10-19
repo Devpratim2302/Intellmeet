@@ -86,7 +86,12 @@ export const DashboardPage: React.FC = () => {
         {/* Quick Action Buttons */}
         <div className="flex items-center gap-3">
           <Link to="/meetings/join">
-            <Button variant="secondary" size="md">
+            <Button
+              variant="secondary"
+              size="md"
+              icon={<Users className="w-4 h-4 text-indigo-400 join-by-code-svg" />}
+              className="join-with-code-btn"
+            >
               Join with Code
             </Button>
           </Link>
@@ -105,7 +110,7 @@ export const DashboardPage: React.FC = () => {
           className="glass-panel p-6 rounded-3xl border border-white/10 hover:border-brand-500/40 transition-all hover:-translate-y-1 group flex flex-col justify-between"
         >
           <div>
-            <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 mb-4 group-hover:bg-brand-500/25 transition-colors shadow-glow-brand">
+            <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 mb-4 group-hover:bg-brand-500/25 transition-colors shadow-glow-brand action-card-brand">
               <Video className="w-6 h-6" />
             </div>
             <h2 className="text-lg font-bold text-white mb-1">Instant Meeting</h2>
@@ -125,7 +130,7 @@ export const DashboardPage: React.FC = () => {
           className="glass-panel p-6 rounded-3xl border border-white/10 hover:border-indigo-500/40 transition-all hover:-translate-y-1 group flex flex-col justify-between"
         >
           <div>
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-500/25 transition-colors shadow-glow-purple">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-500/25 transition-colors shadow-glow-purple join-by-code-icon">
               <Users className="w-6 h-6" />
             </div>
             <h2 className="text-lg font-bold text-white mb-1">Join by Code</h2>
@@ -145,7 +150,7 @@ export const DashboardPage: React.FC = () => {
           className="glass-panel p-6 rounded-3xl border border-white/10 hover:border-purple-500/40 transition-all hover:-translate-y-1 group flex flex-col justify-between"
         >
           <div>
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 group-hover:bg-purple-500/25 transition-colors">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-4 group-hover:bg-purple-500/25 transition-colors action-card-purple">
               <Calendar className="w-6 h-6" />
             </div>
             <h2 className="text-lg font-bold text-white mb-1">Schedule Call</h2>
