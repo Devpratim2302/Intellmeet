@@ -49,6 +49,11 @@ export const HomePage: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-6 px-4 text-center text-xs text-slate-500">
+        <p>Powered by IntellMeet</p>
+      </footer>
     </div>
   );
 };
