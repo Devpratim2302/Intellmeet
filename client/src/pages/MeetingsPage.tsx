@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { meetingApi } from '../services/meeting.api';
 import { Meeting } from '../types/meeting.types';
 import { useAuth } from '../context/AuthContext';
@@ -39,7 +39,6 @@ export const MeetingsPage: React.FC = () => {
   } | null>(null);
 
   // New Meeting Form
-  const [isCreating, setIsCreating] = useState<boolean>(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,7 +76,6 @@ export const MeetingsPage: React.FC = () => {
       setMeetings((prev) => [newMeeting, ...prev]);
       setTitle('');
       setDescription('');
-      setIsCreating(false);
       navigate(`/meetings/${newMeeting.roomId}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create meeting');
@@ -142,13 +140,13 @@ export const MeetingsPage: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsCreating(!isCreating)}
+          <Link
+            to="/meetings/create"
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm flex items-center space-x-2 shadow-glow-brand transition-all transform hover:-translate-y-0.5"
           >
             <Plus className="w-4 h-4" />
             <span>New Meeting</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -279,6 +277,13 @@ export const MeetingsPage: React.FC = () => {
               Click "New Meeting" above to start an instant collaboration room and test
               WebRTC peer connections.
             </p>
+            <Link
+              to="/meetings/create"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-glow-brand transition-all transform hover:-translate-y-0.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Meeting Room</span>
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
