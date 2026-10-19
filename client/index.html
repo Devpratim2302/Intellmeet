@@ -9,6 +9,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <title>IntellMeet — AI-Powered Enterprise Meeting & Collaboration Platform</title>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('intellmeet_theme');
+          if (saved === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body class="bg-dark-950 text-slate-100 antialiased min-h-screen selection:bg-brand-500 selection:text-white">
     <div id="root"></div>

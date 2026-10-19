@@ -14,6 +14,7 @@
   }
 }
 
+/* Glassmorphism System - Dark Mode (Default) */
 .glass-panel {
   background: rgba(19, 23, 34, 0.75);
   backdrop-filter: blur(16px);
@@ -32,4 +33,189 @@
   background: linear-gradient(135deg, #60a5fa 0%, #38bdf8 50%, #c084fc 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================================================
+   Light Mode Design System
+   Activated via html.light (persisted in localStorage: intellmeet_theme)
+   ========================================================================== */
+
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Containers and Panel Overrides */
+html.light .bg-dark-950 {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-dark-900 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-dark-850 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .bg-dark-800 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.07) !important;
+}
+
+html.light .bg-white\/15 {
+  background-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Border Overrides */
+html.light .border-white\/5 {
+  border-color: rgba(226, 232, 240, 0.8) !important;
+}
+
+html.light .border-white\/10 {
+  border-color: rgba(226, 232, 240, 0.95) !important;
+}
+
+html.light .border-white\/15,
+html.light .border-white\/20 {
+  border-color: rgba(203, 213, 225, 0.95) !important;
+}
+
+html.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+html.light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(226, 232, 240, 0.9) !important;
+}
+
+/* Glassmorphism System - Light Mode */
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+}
+
+html.light .glass-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light nav.glass-panel {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05) !important;
+}
+
+/* High-Contrast Gradient Text in Light Mode */
+html.light .gradient-text {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Text Hierarchy in Light Mode */
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Form Inputs in Light Mode */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light textarea,
+html.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light input:focus,
+html.light textarea:focus,
+html.light select:focus {
+  border-color: #0c8ee9 !important;
+  box-shadow: 0 0 0 2px rgba(12, 142, 233, 0.15) !important;
+}
+
+/* Modal and Drawer Backdrop Overrides */
+html.light .bg-black\/70,
+html.light .bg-black\/80 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Interactive Hover States in Light Mode */
+html.light .hover\:bg-white\/5:hover,
+html.light .hover\:bg-white\/10:hover,
+html.light .hover\:bg-white\/15:hover {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+
+/* ==========================================================================
+   PRESERVE WHITE TEXT EXCEPTIONS (Colored Buttons, Video Overlays & Badges)
+   ========================================================================== */
+html.light button.bg-gradient-to-r,
+html.light a.bg-gradient-to-r,
+html.light .bg-gradient-to-r *,
+html.light [class*="from-brand-"] *,
+html.light [class*="from-emerald-"] *,
+html.light [class*="bg-brand-600"] *,
+html.light [class*="bg-rose-600"] *,
+html.light [class*="bg-emerald-600"] *,
+html.light [class*="bg-indigo-600"] *,
+html.light [class*="bg-indigo-500"] *,
+html.light button[class*="bg-rose-600"],
+html.light button[class*="bg-emerald-600"],
+html.light button[class*="bg-brand-600"],
+html.light button[class*="bg-indigo-600"],
+html.light .bg-rose-500,
+html.light .bg-rose-500 *,
+html.light .keep-white,
+html.light .keep-white *,
+html.light .bg-black\/70 *,
+html.light .bg-black\/60 * {
+  color: #ffffff !important;
+}
+
+/* Preserve Video Tile contrast */
+html.light .bg-black\/70 {
+  background-color: rgba(0, 0, 0, 0.75) !important;
 }

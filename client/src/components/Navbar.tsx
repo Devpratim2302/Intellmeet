@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Video, Sparkles, LogOut, LayoutDashboard, Building2, CheckSquare, Camera, Loader2 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { Video, Sparkles, LogOut, LayoutDashboard, Building2, CheckSquare, Camera, Loader2, Sun, Moon } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/Avatar';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout, uploadAvatar } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -91,6 +93,21 @@ export const Navbar: React.FC = () => {
               {/* Real-time Notification Bell */}
               <NotificationDropdown />
 
+              {/* Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-2 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/10 border border-transparent hover:border-white/10 focus:outline-none"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+                ) : (
+                  <Moon className="w-4 h-4 text-indigo-500 hover:-rotate-12 transition-transform" />
+                )}
+              </button>
+
               {/* User badge with Cloudinary avatar upload */}
               <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                 <input
@@ -156,6 +173,21 @@ export const Navbar: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center space-x-3">
+              {/* Theme Toggle Button (Guest) */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-2 rounded-xl text-slate-400 hover:text-white transition-all hover:bg-white/10 border border-transparent hover:border-white/10 focus:outline-none"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+                ) : (
+                  <Moon className="w-4 h-4 text-indigo-500 hover:-rotate-12 transition-transform" />
+                )}
+              </button>
+
               <Link
                 to="/demo"
                 className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5"
