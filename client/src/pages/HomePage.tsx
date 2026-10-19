@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -34,14 +34,21 @@ export const HomePage: React.FC = () => {
             <>
               <Link
                 to="/register"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold flex items-center justify-center space-x-2 shadow-glow-brand transition-all transform hover:-translate-y-0.5"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold flex items-center justify-center space-x-2 shadow-glow-brand transition-all transform hover:-translate-y-0.5"
               >
                 <span>Create Free Account</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
+                to="/demo"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-semibold flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 border border-emerald-400/30 group"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-200 animate-pulse" />
+                <span>Demo Evaluation (1-Click)</span>
+              </Link>
+              <Link
                 to="/login"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl glass-card hover:bg-white/10 text-slate-200 font-semibold flex items-center justify-center space-x-2 transition-all border border-white/10"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl glass-card hover:bg-white/10 text-slate-200 font-semibold flex items-center justify-center space-x-2 transition-all border border-white/10"
               >
                 <span>Sign In with Credentials</span>
               </Link>

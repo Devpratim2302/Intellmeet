@@ -1,19 +1,42 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, LogIn, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, Loader2, Sparkles, ShieldCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const from = location.state?.from?.pathname || '/dashboard';
+
+  const handleOneClickDemo = async () => {
+    setError(null);
+    setIsDemoLoading(true);
+    try {
+      setEmail('mentor.evaluator@intellmeet.io');
+      setPassword('DemoPassword2026!');
+      await loginDemo();
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to authenticate demo account.');
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (searchParams.get('demo') === 'true') {
+      handleOneClickDemo();
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +57,8 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleQuickFill = () => {
-    setEmail('sarah@intellmeet.io');
-    setPassword('Password123!');
+    setEmail('mentor.evaluator@intellmeet.io');
+    setPassword('DemoPassword2026!');
   };
 
   return (
@@ -44,7 +67,7 @@ export const LoginPage: React.FC = () => {
       <div className="absolute w-[500px] h-[500px] bg-brand-500/10 blur-[140px] rounded-full pointer-events-none -z-10" />
 
       <div className="w-full max-w-md glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl relative">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center mx-auto mb-4 text-brand-400">
             <LogIn className="w-6 h-6" />
           </div>
@@ -52,8 +75,53 @@ export const LoginPage: React.FC = () => {
             Sign In to IntellMeet
           </h1>
           <p className="text-sm text-slate-400 mt-1.5">
-            Enter your credentials to access your workspaces
+            Enter your credentials or test with 1-click evaluator access
           </p>
+        </div>
+
+        {/* 1-Click Demo Evaluation Banner */}
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-brand-500/15 border border-emerald-500/30 shadow-lg">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                Mentor / Evaluation Mode
+              </span>
+            </div>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-500/30 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" />
+              Admin Access
+            </span>
+          </div>
+          <p className="text-xs text-slate-300 mb-3 leading-relaxed">
+            Evaluating this project? Click below to autofill and instantly launch into the workspace with full permissions.
+          </p>
+          <button
+            type="button"
+            disabled={isSubmitting || isDemoLoading}
+            onClick={handleOneClickDemo}
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-brand-600 hover:from-emerald-500 hover:to-brand-500 text-white font-semibold text-xs flex items-center justify-center space-x-2 shadow-md transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            {isDemoLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Setting up Evaluator Access...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-emerald-200" />
+                <span>1-Click Evaluator Auto-Login</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="relative flex py-2 items-center mb-4">
+          <div className="flex-grow border-t border-white/10"></div>
+          <span className="flex-shrink mx-3 text-[11px] text-slate-500 uppercase font-semibold tracking-wider">
+            Or Manual Credentials
+          </span>
+          <div className="flex-grow border-t border-white/10"></div>
         </div>
 
         {error && (
@@ -126,10 +194,10 @@ export const LoginPage: React.FC = () => {
           <button
             type="button"
             onClick={handleQuickFill}
-            className="text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 hover:underline"
+            className="text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1 hover:underline"
           >
             <Sparkles className="w-3 h-3" />
-            Quick fill (Sarah)
+            Quick fill (Mentor)
           </button>
         </div>
 

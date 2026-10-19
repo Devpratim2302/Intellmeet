@@ -147,6 +147,14 @@ export const Navbar: React.FC = () => {
           ) : (
             <div className="flex items-center space-x-3">
               <Link
+                to="/demo"
+                className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all hover:scale-105"
+                title="1-Click Mentor Evaluation Mode"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span>Demo Access</span>
+              </Link>
+              <Link
                 to="/login"
                 className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
               >

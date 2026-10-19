@@ -66,6 +66,30 @@ export const login = async (
   }
 };
 
+export const demoLogin = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await authService.loginDemo();
+
+    res.cookie(
+      'refreshToken',
+      result.refreshToken,
+      getAuthCookieOptions(7 * 24 * 60 * 60 * 1000)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Demo evaluator authenticated successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const refreshToken = async (
   req: Request,
   res: Response,

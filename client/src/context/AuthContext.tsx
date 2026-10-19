@@ -14,6 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
+  loginDemo: () => Promise<void>;
   logout: () => Promise<void>;
   uploadAvatar: (file: File) => Promise<User>;
   deleteAvatar: () => Promise<User>;
@@ -90,6 +91,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('intellmeet_user', JSON.stringify(registeredUser));
   };
 
+  const loginDemo = async () => {
+    try {
+      const response = await api.post<AuthResponse>('/auth/demo');
+      const { user: loggedInUser, accessToken, refreshToken } = response.data.data;
+
+      setUser(loggedInUser);
+      setToken(accessToken);
+      localStorage.setItem('intellmeet_token', accessToken);
+      if (refreshToken) {
+        localStorage.setItem('intellmeet_refresh_token', refreshToken);
+      }
+      localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+    } catch {
+      // Fallback: try regular login with mentor credentials or register on the fly
+      try {
+        await login({
+          email: 'mentor.evaluator@intellmeet.io',
+          password: 'DemoPassword2026!',
+        });
+      } catch {
+        await register({
+          name: 'Project Mentor (Evaluator)',
+          email: 'mentor.evaluator@intellmeet.io',
+          password: 'DemoPassword2026!',
+        });
+      }
+    }
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -133,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginDemo,
         logout,
         uploadAvatar,
         deleteAvatar,

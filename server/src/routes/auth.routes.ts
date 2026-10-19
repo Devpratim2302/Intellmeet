@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   register,
   login,
+  demoLogin,
   refreshToken,
   getMe,
   logout,
@@ -23,6 +24,8 @@ const router = Router();
 // Public routes with rate limiting & schema validation
 router.post('/register', authLimiter, validateRequest(registerSchema), register);
 router.post('/login', authLimiter, validateRequest(loginSchema), login);
+router.post('/demo', demoLogin);
+router.get('/demo', demoLogin);
 router.post('/refresh', validateRequest(refreshTokenSchema), refreshToken);
 
 // Protected routes
