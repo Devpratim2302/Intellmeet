@@ -72,7 +72,11 @@ export const DashboardPage: React.FC = () => {
             <span>Workspace Active</span>
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Welcome back, {user?.name || 'Developer'}!
+            Welcome back,{' '}
+            {user?.name === 'Project Mentor (Evaluator)' || user?.name?.includes('Mentor')
+              ? 'Demo Admin'
+              : user?.name || 'Developer'}
+            !
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             IntellMeet Workspace • AI-Powered Collaboration Platform

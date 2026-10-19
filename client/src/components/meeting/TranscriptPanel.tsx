@@ -228,12 +228,23 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 {/* Speaker info & Timestamp */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold uppercase shadow-sm">
-                      {segment.speaker.name.charAt(0)}
-                    </div>
-                    <span className="font-semibold text-slate-200">
-                      {segment.speaker.name}
-                    </span>
+                    {(() => {
+                      const speakerClean =
+                        segment.speaker.name === 'Project Mentor (Evaluator)' ||
+                        segment.speaker.name?.includes('Mentor')
+                          ? 'Demo Admin'
+                          : segment.speaker.name;
+                      return (
+                        <>
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold uppercase shadow-sm">
+                            {speakerClean.charAt(0)}
+                          </div>
+                          <span className="font-semibold text-slate-200">
+                            {speakerClean}
+                          </span>
+                        </>
+                      );
+                    })()}
                     {isLocal && (
                       <span className="px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300 text-[10px] font-medium border border-brand-500/30">
                         You

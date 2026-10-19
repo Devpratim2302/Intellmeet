@@ -82,7 +82,7 @@ export const demoLogin = async (
 
     res.status(200).json({
       success: true,
-      message: 'Demo evaluator authenticated successfully',
+      message: 'Demo admin authenticated successfully',
       data: result,
     });
   } catch (error) {

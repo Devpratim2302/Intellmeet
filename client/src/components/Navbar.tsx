@@ -116,7 +116,15 @@ export const Navbar: React.FC = () => {
                       <AvatarImage
                         src={user?.avatar}
                         alt={user?.name}
-                        fallback={<AvatarFallback name={user?.name} />}
+                        fallback={
+                          <AvatarFallback
+                            name={
+                              user?.name === 'Project Mentor (Evaluator)' || user?.name?.includes('Mentor')
+                                ? 'Demo Admin'
+                                : user?.name
+                            }
+                          />
+                        }
                       />
                     )}
                   </Avatar>
@@ -126,10 +134,12 @@ export const Navbar: React.FC = () => {
                 </button>
                 <div className="hidden md:flex flex-col text-left">
                   <span className="text-xs font-semibold text-white leading-tight">
-                    {user?.name}
+                    {user?.name === 'Project Mentor (Evaluator)' || user?.name?.includes('Mentor')
+                      ? 'Demo Admin'
+                      : user?.name}
                   </span>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider">
-                    {user?.role}
+                    {user?.role === 'admin' ? 'demo admin' : user?.role}
                   </span>
                 </div>
               </div>

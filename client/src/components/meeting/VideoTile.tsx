@@ -41,6 +41,11 @@ export const VideoTile: React.FC<VideoTileProps> = ({
   // Speaking state only active if not muted
   const activeSpeaking = isSpeaking && !isMuted;
 
+  const cleanDisplayName =
+    name === 'Project Mentor (Evaluator)' || name?.includes('Project Mentor') || name?.includes('Mentor')
+      ? 'Demo Admin'
+      : name;
+
   return (
     <div
       className={`relative glass-card rounded-2xl overflow-hidden border bg-dark-900/90 flex items-center justify-center aspect-video min-h-[200px] sm:min-h-[260px] shadow-lg transition-all duration-300 ${
@@ -80,7 +85,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
                 : 'bg-brand-500/15 border border-brand-500/30 text-brand-300'
             }`}
           >
-            {name ? name.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
+            {cleanDisplayName ? cleanDisplayName.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
           </div>
           <span className="text-xs text-slate-400 font-medium">Camera is off</span>
         </div>
@@ -88,7 +93,7 @@ export const VideoTile: React.FC<VideoTileProps> = ({
 
       {/* Participant Name Badge (Bottom-Left) */}
       <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-xs font-medium text-white flex items-center gap-2 max-w-[80%] truncate">
-        <span className="truncate">{name}</span>
+        <span className="truncate">{cleanDisplayName}</span>
         {isLocal && <span className="text-slate-400 text-[10px]">(You)</span>}
         {activeSpeaking && (
           <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />

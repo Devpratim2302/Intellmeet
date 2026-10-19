@@ -101,6 +101,11 @@ export class AuthService {
       throw error;
     }
 
+    if (user.name === 'Project Mentor (Evaluator)' || user.name.includes('Project Mentor')) {
+      user.name = 'Demo Admin';
+      await user.save();
+    }
+
     const tokenPayload: TokenPayload = {
       userId: user._id.toString(),
       email: user.email,
@@ -128,23 +133,29 @@ export class AuthService {
   }
 
   /**
-   * Automatically initializes or logs in a Demo Mentor / Evaluator account with full admin privileges,
-   * provisioning default workspaces, meetings, and tasks for a complete live testing evaluation.
+   * Automatically initializes or logs in a Demo Admin account with full admin privileges,
+   * provisioning default workspaces, meetings, and tasks for a complete live testing environment.
    */
   async loginDemo(): Promise<AuthResult> {
-    const demoEmail = 'mentor.evaluator@intellmeet.io';
-    let user = await User.findOne({ email: demoEmail }).select('+password +refreshToken');
+    const demoEmail = 'demo.admin@intellmeet.io';
+    let user = await User.findOne({
+      $or: [
+        { email: 'demo.admin@intellmeet.io' },
+        { email: 'mentor.evaluator@intellmeet.io' },
+      ],
+    }).select('+password +refreshToken');
 
     if (!user) {
       user = new User({
-        name: 'Project Mentor (Evaluator)',
+        name: 'Demo Admin',
         email: demoEmail,
         password: 'DemoPassword2026!',
         role: 'admin',
         isVerified: true,
       });
       await user.save();
-    } else if (user.role !== 'admin') {
+    } else {
+      user.name = 'Demo Admin';
       user.role = 'admin';
       await user.save();
     }
@@ -154,10 +165,10 @@ export class AuthService {
       let workspace = await Workspace.findOne({ owner: user._id });
       if (!workspace) {
         workspace = new Workspace({
-          name: 'IntellMeet Evaluation Workspace',
-          slug: `eval-${Date.now().toString(36)}`,
+          name: 'IntellMeet Demo Workspace',
+          slug: `demo-${Date.now().toString(36)}`,
           description:
-            'Dedicated evaluation environment for project mentor testing: WebRTC HD video, AI transcription, and team collaboration.',
+            'Dedicated demo environment with WebRTC HD video, AI transcription, and team collaboration.',
           owner: user._id,
           members: [
             {
@@ -310,9 +321,15 @@ export class AuthService {
    * Fetches safe user profile
    */
   async getProfile(user: IUser) {
+    let name = user.name;
+    if (name === 'Project Mentor (Evaluator)' || name.includes('Project Mentor')) {
+      name = 'Demo Admin';
+      await User.findByIdAndUpdate(user._id, { name: 'Demo Admin' });
+    }
+
     return {
       id: user._id.toString(),
-      name: user.name,
+      name,
       email: user.email,
       role: user.role,
       avatar: user.avatar,

@@ -151,18 +151,27 @@ export const MeetingRoomPage: React.FC = () => {
     }
   };
 
+  const getParticipantDisplayName = (rawName?: string): string => {
+    if (!rawName) return 'You';
+    if (rawName === 'Project Mentor (Evaluator)' || rawName.includes('Project Mentor') || rawName.includes('Mentor')) {
+      return 'Demo Admin';
+    }
+    return rawName;
+  };
+
   // Determine if anyone in the call is currently presenting
   const isSomeoneSharing = isScreenSharing || !!activeScreenSharePeerId;
 
   // Find presenter information
   const presenter = isScreenSharing
-    ? { isLocal: true, name: user?.name || 'You', stream: localStream }
+    ? { isLocal: true, name: getParticipantDisplayName(user?.name), stream: localStream }
     : activeScreenSharePeerId
       ? {
           isLocal: false,
           name:
-            participants.find((p) => p.socketId === activeScreenSharePeerId)?.name ||
-            'Presenter',
+            getParticipantDisplayName(
+              participants.find((p) => p.socketId === activeScreenSharePeerId)?.name
+            ) || 'Presenter',
           stream: remotePeers.find((p) => p.socketId === activeScreenSharePeerId)?.stream || null,
         }
       : null;
@@ -278,7 +287,7 @@ export const MeetingRoomPage: React.FC = () => {
                 <div className="w-48 lg:w-full shrink-0">
                   <VideoTile
                     stream={localStream}
-                    name={user?.name || 'You'}
+                    name={getParticipantDisplayName(user?.name)}
                     isLocal={true}
                     isMuted={isAudioMuted}
                     isVideoOff={isVideoDisabled}
@@ -292,8 +301,9 @@ export const MeetingRoomPage: React.FC = () => {
                   const matchedParticipant = participants.find(
                     (p) => p.socketId === peer.socketId
                   );
-                  const peerName =
-                    matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`;
+                  const peerName = getParticipantDisplayName(
+                    matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`
+                  );
 
                   return (
                     <div key={peer.socketId} className="w-48 lg:w-full shrink-0">
@@ -317,7 +327,7 @@ export const MeetingRoomPage: React.FC = () => {
               {/* Local Video Tile */}
               <VideoTile
                 stream={localStream}
-                name={user?.name || 'You'}
+                name={getParticipantDisplayName(user?.name)}
                 isLocal={true}
                 isMuted={isAudioMuted}
                 isVideoOff={isVideoDisabled}
@@ -330,8 +340,9 @@ export const MeetingRoomPage: React.FC = () => {
                 const matchedParticipant = participants.find(
                   (p) => p.socketId === peer.socketId
                 );
-                const peerName =
-                  matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`;
+                const peerName = getParticipantDisplayName(
+                  matchedParticipant?.name || `Remote Peer (${peer.socketId.slice(0, 5)})`
+                );
 
                 return (
                   <VideoTile

@@ -40,6 +40,10 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
           const isYou = p.userId === currentUserId;
           const isHost = p.userId === hostId || p.role === 'admin';
           const isSpeaking = p.isSpeaking && !p.isMuted;
+          const participantName =
+            p.name === 'Project Mentor (Evaluator)' || p.name?.includes('Project Mentor') || p.name?.includes('Mentor')
+              ? 'Demo Admin'
+              : p.name;
 
           return (
             <div
@@ -59,7 +63,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                       : 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
                   }`}
                 >
-                  {p.name ? p.name.charAt(0).toUpperCase() : 'U'}
+                  {participantName ? participantName.charAt(0).toUpperCase() : 'U'}
 
                   {/* Active speaking pulse dot */}
                   {isSpeaking && (
@@ -70,7 +74,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                 <div className="truncate">
                   <div className="flex items-center space-x-1.5 truncate">
                     <span className="text-xs font-semibold text-white truncate">
-                      {p.name}
+                      {participantName}
                     </span>
                     {isYou && (
                       <span className="text-[10px] text-brand-400 font-medium shrink-0">

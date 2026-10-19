@@ -25,7 +25,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('intellmeet_user');
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.name === 'Project Mentor (Evaluator)' || parsed.name?.includes('Mentor'))) {
+          parsed.name = 'Demo Admin';
+          localStorage.setItem('intellmeet_user', JSON.stringify(parsed));
+        }
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+    return null;
   });
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('intellmeet_token');
@@ -44,10 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const response = await api.get('/auth/me');
         if (response.data.success) {
-          setUser(response.data.data.user);
+          const userData = response.data.data.user;
+          if (userData && (userData.name === 'Project Mentor (Evaluator)' || userData.name?.includes('Mentor'))) {
+            userData.name = 'Demo Admin';
+          }
+          setUser(userData);
           localStorage.setItem(
             'intellmeet_user',
-            JSON.stringify(response.data.data.user)
+            JSON.stringify(userData)
           );
         }
       } catch {
@@ -68,7 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (credentials: LoginCredentials) => {
     const response = await api.post<AuthResponse>('/auth/login', credentials);
     const { user: loggedInUser, accessToken, refreshToken } = response.data.data;
-
+    if (loggedInUser && (loggedInUser.name === 'Project Mentor (Evaluator)' || loggedInUser.name?.includes('Mentor'))) {
+      loggedInUser.name = 'Demo Admin';
+    }
     setUser(loggedInUser);
     setToken(accessToken);
     localStorage.setItem('intellmeet_token', accessToken);
@@ -81,7 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (credentials: RegisterCredentials) => {
     const response = await api.post<AuthResponse>('/auth/register', credentials);
     const { user: registeredUser, accessToken, refreshToken } = response.data.data;
-
     setUser(registeredUser);
     setToken(accessToken);
     localStorage.setItem('intellmeet_token', accessToken);
@@ -96,6 +113,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.post<AuthResponse>('/auth/demo');
       const { user: loggedInUser, accessToken, refreshToken } = response.data.data;
 
+      if (loggedInUser && (loggedInUser.name === 'Project Mentor (Evaluator)' || loggedInUser.name?.includes('Mentor'))) {
+        loggedInUser.name = 'Demo Admin';
+      }
+
       setUser(loggedInUser);
       setToken(accessToken);
       localStorage.setItem('intellmeet_token', accessToken);
@@ -104,18 +125,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
     } catch {
-      // Fallback: try regular login with mentor credentials or register on the fly
+      // Fallback: try regular login with demo admin credentials or register on the fly
       try {
         await login({
-          email: 'mentor.evaluator@intellmeet.io',
+          email: 'demo.admin@intellmeet.io',
           password: 'DemoPassword2026!',
         });
       } catch {
-        await register({
-          name: 'Project Mentor (Evaluator)',
-          email: 'mentor.evaluator@intellmeet.io',
-          password: 'DemoPassword2026!',
-        });
+        try {
+          await login({
+            email: 'mentor.evaluator@intellmeet.io',
+            password: 'DemoPassword2026!',
+          });
+        } catch {
+          await register({
+            name: 'Demo Admin',
+            email: 'demo.admin@intellmeet.io',
+            password: 'DemoPassword2026!',
+          });
+        }
       }
     }
   };

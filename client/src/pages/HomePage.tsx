@@ -16,7 +16,7 @@ export const HomePage: React.FC<HomePageProps> = ({ autoOpenDemo = false }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const demoEmail = 'mentor.evaluator@intellmeet.io';
+  const demoEmail = 'demo.admin@intellmeet.io';
   const demoPassword = 'DemoPassword2026!';
 
   useEffect(() => {

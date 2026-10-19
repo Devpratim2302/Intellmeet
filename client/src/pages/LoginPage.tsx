@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
   const from = location.state?.from?.pathname || '/dashboard';
 
   const fillDemoCredentials = () => {
-    setEmail('mentor.evaluator@intellmeet.io');
+    setEmail('demo.admin@intellmeet.io');
     setPassword('DemoPassword2026!');
     setIsDemoMode(true);
   };
