@@ -204,7 +204,7 @@ export const Navbar: React.FC = () => {
                 to="/register"
                 className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 rounded-lg shadow-glow-brand transition-all transform hover:-translate-y-0.5"
               >
-                Get Started
+                Sign Up
               </Link>
             </div>
           )}
