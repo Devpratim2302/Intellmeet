@@ -12,7 +12,7 @@ import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
 import { useMeetingUiStore } from '../stores/meetingUiStore';
-import { Copy, Check, Clock, Activity, Terminal, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle } from 'lucide-react';
+import { Copy, Check, Clock, Terminal, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -501,15 +501,7 @@ export const MeetingRoomPage: React.FC = () => {
             </div>
           )}
 
-          {/* Empty Peer Hint when waiting */}
-          {remotePeers.length === 0 && !isSomeoneSharing && (
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 text-xs text-slate-400 flex items-center gap-2 pointer-events-none">
-              <Activity className="w-4 h-4 text-brand-400 animate-pulse" />
-              <span>
-                Waiting for participants to join... Share the room code or invite link
-              </span>
-            </div>
-          )}
+
         </main>
 
         {/* Signaling Inspector Drawer */}

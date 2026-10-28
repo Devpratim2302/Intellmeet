@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Video, Sparkles, LogOut, LayoutDashboard, Building2, CheckSquare, Camera, Loader2, Sun, Moon } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/Avatar';
+import { IntellMeetLogo } from './IntellMeetLogo';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout, uploadAvatar } = useAuth();
@@ -49,7 +50,7 @@ export const Navbar: React.FC = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2.5 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform duration-200 logo-brand-icon">
-            <Video className="w-5 h-5 text-white" />
+            <IntellMeetLogo className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5 logo-brand-text">
             IntellMeet
