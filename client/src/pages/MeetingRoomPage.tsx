@@ -545,7 +545,7 @@ export const MeetingRoomPage: React.FC = () => {
           isTranscriptOpen={isTranscriptOpen}
           isTranscribing={isTranscribing}
           transcriptSegmentCount={segments.length}
-          participantCount={participants.length}
+          participantCount={Math.max(participants.length, 1 + remotePeers.length)}
           unreadCount={unreadCount}
           onToggleAudio={toggleAudio}
           onToggleVideo={toggleVideo}

@@ -31,12 +31,21 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
         // Join Socket.io room
         socket.join(socketRoom);
 
+        const isDemo =
+          user.name === 'Project Mentor (Evaluator)' ||
+          user.name?.includes('Mentor') ||
+          user.name === 'Demo Admin' ||
+          user.email === 'mentor.evaluator@intellmeet.io';
+
+        const participantName = isDemo ? 'Demo Admin' : user.name;
+        const participantEmail = isDemo ? 'demo.admin@intellmeet.io' : user.email;
+
         // Create participant metadata
         const participant: RoomParticipant = {
           socketId: socket.id,
           userId: user.userId,
-          name: user.name,
-          email: user.email,
+          name: participantName,
+          email: participantEmail,
           avatar: user.avatar,
           role: user.role,
           isMuted,
@@ -83,6 +92,12 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
         socket.to(socketRoom).emit('user-joined', {
           roomId: normalizedRoom,
           participant,
+          participants,
+        });
+
+        // 3. Broadcast updated authoritative full participant list to everyone in the room
+        io.to(socketRoom).emit('meeting-participants', {
+          roomId: normalizedRoom,
           participants,
         });
 
@@ -191,12 +206,18 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
         const normalizedRoom = roomId.toLowerCase();
         const socketRoom = `room:${normalizedRoom}`;
 
+        const isSenderDemo =
+          user.name === 'Project Mentor (Evaluator)' ||
+          user.name?.includes('Mentor') ||
+          user.name === 'Demo Admin' ||
+          user.email === 'mentor.evaluator@intellmeet.io';
+
         // Persist message to database
         const savedMessage = await messageService.createMessage({
           roomId: normalizedRoom,
           senderId: user.userId,
-          senderName: user.name,
-          senderEmail: user.email,
+          senderName: isSenderDemo ? 'Demo Admin' : user.name,
+          senderEmail: isSenderDemo ? 'demo.admin@intellmeet.io' : user.email,
           senderAvatar: user.avatar,
           content: trimmedContent,
           type: 'chat',
@@ -216,6 +237,26 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
             message: err.message || 'Failed to send message',
           });
         }
+      }
+    }
+  );
+
+  /**
+   * Retrieve current meeting participants on demand
+   */
+  socket.on(
+    'get-participants',
+    (data: { roomId: string }, callback?: (response: any) => void) => {
+      const normalizedRoom = data?.roomId?.toLowerCase();
+      if (!normalizedRoom) {
+        if (callback) callback({ success: false, message: 'Room ID is required' });
+        return;
+      }
+      const participants = presenceManager.getParticipants(normalizedRoom);
+      if (callback) {
+        callback({ success: true, participants });
+      } else {
+        socket.emit('meeting-participants', { roomId: normalizedRoom, participants });
       }
     }
   );
@@ -317,10 +358,16 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
         const socketRoom = `room:${normalizedRoom}`;
         const audioBuffer = Buffer.from(audioBase64, 'base64');
 
+        const isSpeakerDemo =
+          user.name === 'Project Mentor (Evaluator)' ||
+          user.name?.includes('Mentor') ||
+          user.name === 'Demo Admin' ||
+          user.email === 'mentor.evaluator@intellmeet.io';
+
         const speaker: ITranscriptSpeaker = {
           id: new mongoose.Types.ObjectId(user.userId),
-          name: user.name,
-          email: user.email,
+          name: isSpeakerDemo ? 'Demo Admin' : user.name,
+          email: isSpeakerDemo ? 'demo.admin@intellmeet.io' : user.email,
           avatar: user.avatar,
         };
 
@@ -380,10 +427,16 @@ export const registerMeetingHandlers = (io: Server, socket: Socket) => {
         const normalizedRoom = roomId.toLowerCase();
         const socketRoom = `room:${normalizedRoom}`;
 
+        const isSpeakerDemo =
+          user.name === 'Project Mentor (Evaluator)' ||
+          user.name?.includes('Mentor') ||
+          user.name === 'Demo Admin' ||
+          user.email === 'mentor.evaluator@intellmeet.io';
+
         const speaker: ITranscriptSpeaker = {
           id: new mongoose.Types.ObjectId(user.userId),
-          name: user.name,
-          email: user.email,
+          name: isSpeakerDemo ? 'Demo Admin' : user.name,
+          email: isSpeakerDemo ? 'demo.admin@intellmeet.io' : user.email,
           avatar: user.avatar,
         };
 

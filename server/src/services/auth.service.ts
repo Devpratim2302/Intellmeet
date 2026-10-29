@@ -101,8 +101,9 @@ export class AuthService {
       throw error;
     }
 
-    if (user.name === 'Project Mentor (Evaluator)' || user.name.includes('Project Mentor')) {
+    if (user.name === 'Project Mentor (Evaluator)' || user.name.includes('Project Mentor') || user.email === 'mentor.evaluator@intellmeet.io') {
       user.name = 'Demo Admin';
+      user.email = 'demo.admin@intellmeet.io';
       await user.save();
     }
 
@@ -138,12 +139,26 @@ export class AuthService {
    */
   async loginDemo(): Promise<AuthResult> {
     const demoEmail = 'demo.admin@intellmeet.io';
-    let user = await User.findOne({
-      $or: [
-        { email: 'demo.admin@intellmeet.io' },
-        { email: 'mentor.evaluator@intellmeet.io' },
-      ],
-    }).select('+password +refreshToken');
+
+    // Migrate any legacy mentor.evaluator account to demo.admin@intellmeet.io
+    try {
+      const legacyMentor = await User.findOne({ email: 'mentor.evaluator@intellmeet.io' });
+      if (legacyMentor) {
+        const existingDemo = await User.findOne({ email: demoEmail });
+        if (existingDemo && existingDemo._id.toString() !== legacyMentor._id.toString()) {
+          await User.deleteOne({ _id: legacyMentor._id });
+        } else {
+          legacyMentor.email = demoEmail;
+          legacyMentor.name = 'Demo Admin';
+          legacyMentor.role = 'admin';
+          await legacyMentor.save();
+        }
+      }
+    } catch {
+      // Non-fatal if legacy cleanup fails
+    }
+
+    let user = await User.findOne({ email: demoEmail }).select('+password +refreshToken');
 
     if (!user) {
       user = new User({
@@ -156,6 +171,7 @@ export class AuthService {
       await user.save();
     } else {
       user.name = 'Demo Admin';
+      user.email = demoEmail;
       user.role = 'admin';
       await user.save();
     }
@@ -322,15 +338,17 @@ export class AuthService {
    */
   async getProfile(user: IUser) {
     let name = user.name;
-    if (name === 'Project Mentor (Evaluator)' || name.includes('Project Mentor')) {
+    let email = user.email;
+    if (name === 'Project Mentor (Evaluator)' || name.includes('Project Mentor') || email === 'mentor.evaluator@intellmeet.io') {
       name = 'Demo Admin';
-      await User.findByIdAndUpdate(user._id, { name: 'Demo Admin' });
+      email = 'demo.admin@intellmeet.io';
+      await User.findByIdAndUpdate(user._id, { name: 'Demo Admin', email: 'demo.admin@intellmeet.io' });
     }
 
     return {
       id: user._id.toString(),
       name,
-      email: user.email,
+      email,
       role: user.role,
       avatar: user.avatar,
       isVerified: user.isVerified,

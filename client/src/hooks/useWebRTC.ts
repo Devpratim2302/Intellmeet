@@ -391,6 +391,7 @@ export const useWebRTC = (roomId: string, enabled: boolean = true) => {
 
     let mounted = true;
     let vadCleanup = () => {};
+    let syncInterval: any = null;
     const socket = socketService.connect();
 
     // 0. Load persistent previous messages when joining
@@ -422,28 +423,6 @@ export const useWebRTC = (roomId: string, enabled: boolean = true) => {
         }
       });
 
-      // Join the meeting room with initial media state
-      try {
-        await socketService.joinMeeting(roomId);
-        setIsConnected(true);
-        addLog('join', `Successfully joined room ${roomId}`);
-      } catch (err: any) {
-        addLog('info', `Error joining room: ${err.message}`);
-        if (err?.meetingEnded) {
-          setIsMeetingEnded(true);
-          if (cameraStreamRef.current) {
-            mediaService.stopMediaStream(cameraStreamRef.current);
-            cameraStreamRef.current = null;
-          }
-          if (screenStreamRef.current) {
-            mediaService.stopMediaStream(screenStreamRef.current);
-            screenStreamRef.current = null;
-          }
-          setLocalStream(null);
-          return;
-        }
-      }
-
       /**
        * Handle Meeting Ended broadcast
        */
@@ -464,13 +443,15 @@ export const useWebRTC = (roomId: string, enabled: boolean = true) => {
       });
 
       /**
-       * 1. Room participants list received upon joining
+       * 1. Room participants list received upon joining or broadcast
        */
       socket.on(
         'meeting-participants',
         async (data: { roomId: string; participants: RoomParticipant[] }) => {
           if (!mounted) return;
-          setParticipants(data.participants);
+          if (Array.isArray(data.participants)) {
+            setParticipants(data.participants);
+          }
 
           // Check if any participant is currently screen sharing
           const sharingPeer = data.participants.find((p) => p.isScreenSharing);
@@ -478,9 +459,10 @@ export const useWebRTC = (roomId: string, enabled: boolean = true) => {
             setActiveScreenSharePeerId(sharingPeer.socketId);
           }
 
-          // For each other participant, create peer connection and send offer
+          // For each other participant, create peer connection and send offer if needed
           for (const peer of data.participants) {
             if (peer.socketId === socket.id) continue;
+            if (peerConnections.current.has(peer.socketId)) continue;
 
             addLog(
               'offer',
@@ -512,7 +494,9 @@ export const useWebRTC = (roomId: string, enabled: boolean = true) => {
         'user-joined',
         (data: { participant: RoomParticipant; participants: RoomParticipant[] }) => {
           if (!mounted) return;
-          setParticipants(data.participants);
+          if (Array.isArray(data.participants)) {
+            setParticipants(data.participants);
+          }
           addLog(
             'join',
             `${data.participant.name} joined the meeting`,
@@ -651,18 +635,90 @@ export const useWebRTC = (roomId: string, enabled: boolean = true) => {
         'user-left',
         (data: { socketId: string; name: string; remaining: RoomParticipant[] }) => {
           if (!mounted) return;
-          setParticipants(data.remaining);
+          if (Array.isArray(data.remaining)) {
+            setParticipants(data.remaining);
+          }
           closePeerConnection(data.socketId);
           setActiveScreenSharePeerId((prev) => (prev === data.socketId ? null : prev));
           addLog('leave', `${data.name} left the meeting`, data.socketId);
         }
       );
+
+      /**
+       * 9. Automatic re-join and sync on socket reconnection
+       */
+      socket.on('connect', async () => {
+        if (!mounted) return;
+        try {
+          const res = await socketService.joinMeeting(roomId);
+          if (mounted && res?.participants && Array.isArray(res.participants)) {
+            setParticipants(res.participants);
+          }
+        } catch {
+          // Non-fatal reconnect
+        }
+      });
+
+      // Join the meeting room with initial media state (listeners are already registered)
+      try {
+        const joinData = await socketService.joinMeeting(roomId);
+        if (mounted) {
+          setIsConnected(true);
+          addLog('join', `Successfully joined room ${roomId}`);
+          if (joinData?.participants && Array.isArray(joinData.participants)) {
+            setParticipants(joinData.participants);
+          }
+        }
+      } catch (err: any) {
+        if (!mounted) return;
+        addLog('info', `Error joining room: ${err.message}`);
+        if (err?.meetingEnded) {
+          setIsMeetingEnded(true);
+          if (cameraStreamRef.current) {
+            mediaService.stopMediaStream(cameraStreamRef.current);
+            cameraStreamRef.current = null;
+          }
+          if (screenStreamRef.current) {
+            mediaService.stopMediaStream(screenStreamRef.current);
+            screenStreamRef.current = null;
+          }
+          setLocalStream(null);
+          return;
+        }
+      }
+
+      // Periodic synchronization check to ensure participant lists never drift
+      syncInterval = setInterval(() => {
+        if (!mounted) return;
+        if (socket?.connected) {
+          socket.emit('get-participants', { roomId }, (res: any) => {
+            if (mounted && res?.success && Array.isArray(res.participants) && res.participants.length > 0) {
+              setParticipants(res.participants);
+            }
+          });
+        }
+      }, 3000);
     };
 
     setup();
 
     return () => {
       mounted = false;
+      if (syncInterval) {
+        clearInterval(syncInterval);
+      }
+      if (socket) {
+        socket.off('connect');
+        socket.off('meeting-ended');
+        socket.off('meeting-participants');
+        socket.off('user-joined');
+        socket.off('participant-state-changed');
+        socket.off('chat-message');
+        socket.off('webrtc-offer');
+        socket.off('webrtc-answer');
+        socket.off('webrtc-ice-candidate');
+        socket.off('user-left');
+      }
       vadCleanup();
       socketService.leaveMeeting(roomId);
 

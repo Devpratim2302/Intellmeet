@@ -23,17 +23,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const sanitizeUser = (u: any): User | null => {
+  if (!u) return null;
+  const isDemo =
+    u.name === 'Project Mentor (Evaluator)' ||
+    u.name?.includes('Mentor') ||
+    u.name === 'Demo Admin' ||
+    u.email === 'mentor.evaluator@intellmeet.io' ||
+    u.email === 'demo.admin@intellmeet.io';
+
+  return {
+    ...u,
+    name: isDemo ? 'Demo Admin' : u.name,
+    email: isDemo ? 'demo.admin@intellmeet.io' : u.email,
+  };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('intellmeet_user');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && (parsed.name === 'Project Mentor (Evaluator)' || parsed.name?.includes('Mentor'))) {
-          parsed.name = 'Demo Admin';
-          localStorage.setItem('intellmeet_user', JSON.stringify(parsed));
+        const sanitized = sanitizeUser(parsed);
+        if (sanitized && (sanitized.name !== parsed.name || sanitized.email !== parsed.email)) {
+          localStorage.setItem('intellmeet_user', JSON.stringify(sanitized));
         }
-        return parsed;
+        return sanitized;
       } catch {
         return null;
       }
@@ -57,15 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const response = await api.get('/auth/me');
         if (response.data.success) {
-          const userData = response.data.data.user;
-          if (userData && (userData.name === 'Project Mentor (Evaluator)' || userData.name?.includes('Mentor'))) {
-            userData.name = 'Demo Admin';
-          }
+          const userData = sanitizeUser(response.data.data.user);
           setUser(userData);
-          localStorage.setItem(
-            'intellmeet_user',
-            JSON.stringify(userData)
-          );
+          if (userData) {
+            localStorage.setItem('intellmeet_user', JSON.stringify(userData));
+          }
         }
       } catch {
         // If session verification fails, clear storage
@@ -84,41 +96,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credentials: LoginCredentials) => {
     const response = await api.post<AuthResponse>('/auth/login', credentials);
-    const { user: loggedInUser, accessToken, refreshToken } = response.data.data;
-    if (loggedInUser && (loggedInUser.name === 'Project Mentor (Evaluator)' || loggedInUser.name?.includes('Mentor'))) {
-      loggedInUser.name = 'Demo Admin';
-    }
+    const { user: rawUser, accessToken, refreshToken } = response.data.data;
+    const loggedInUser = sanitizeUser(rawUser);
     setUser(loggedInUser);
     setToken(accessToken);
     localStorage.setItem('intellmeet_token', accessToken);
     if (refreshToken) {
       localStorage.setItem('intellmeet_refresh_token', refreshToken);
     }
-    localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+    if (loggedInUser) {
+      localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+    }
     socketService.connect();
   };
 
   const register = async (credentials: RegisterCredentials) => {
     const response = await api.post<AuthResponse>('/auth/register', credentials);
-    const { user: registeredUser, accessToken, refreshToken } = response.data.data;
+    const { user: rawUser, accessToken, refreshToken } = response.data.data;
+    const registeredUser = sanitizeUser(rawUser);
     setUser(registeredUser);
     setToken(accessToken);
     localStorage.setItem('intellmeet_token', accessToken);
     if (refreshToken) {
       localStorage.setItem('intellmeet_refresh_token', refreshToken);
     }
-    localStorage.setItem('intellmeet_user', JSON.stringify(registeredUser));
+    if (registeredUser) {
+      localStorage.setItem('intellmeet_user', JSON.stringify(registeredUser));
+    }
     socketService.connect();
   };
 
   const loginDemo = async () => {
     try {
       const response = await api.post<AuthResponse>('/auth/demo');
-      const { user: loggedInUser, accessToken, refreshToken } = response.data.data;
-
-      if (loggedInUser && (loggedInUser.name === 'Project Mentor (Evaluator)' || loggedInUser.name?.includes('Mentor'))) {
-        loggedInUser.name = 'Demo Admin';
-      }
+      const { user: rawUser, accessToken, refreshToken } = response.data.data;
+      const loggedInUser = sanitizeUser(rawUser);
 
       setUser(loggedInUser);
       setToken(accessToken);
@@ -126,7 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (refreshToken) {
         localStorage.setItem('intellmeet_refresh_token', refreshToken);
       }
-      localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+      if (loggedInUser) {
+        localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+      }
       socketService.connect();
     } catch {
       // Fallback: try regular login with demo admin credentials or register on the fly
@@ -136,18 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           password: 'DemoPassword2026!',
         });
       } catch {
-        try {
-          await login({
-            email: 'mentor.evaluator@intellmeet.io',
-            password: 'DemoPassword2026!',
-          });
-        } catch {
-          await register({
-            name: 'Demo Admin',
-            email: 'demo.admin@intellmeet.io',
-            password: 'DemoPassword2026!',
-          });
-        }
+        await register({
+          name: 'Demo Admin',
+          email: 'demo.admin@intellmeet.io',
+          password: 'DemoPassword2026!',
+        });
       }
     }
   };

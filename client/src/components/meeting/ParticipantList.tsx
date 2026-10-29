@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Users, Crown, Shield, Mic, MicOff, Video, VideoOff, Monitor, Volume2 } from 'lucide-react';
 import { RoomParticipant } from '../../types/meeting.types';
+import { useAuth } from '../../context/AuthContext';
 
 export interface ParticipantListProps {
   participants: RoomParticipant[];
@@ -15,6 +16,28 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
   hostId,
   onClose,
 }) => {
+  const { user } = useAuth();
+
+  // Ensure current user is always included so participant count is accurate and never 0
+  const displayParticipants = React.useMemo(() => {
+    const list = [...participants];
+    if (user && !list.some((p) => p.userId === user.id || p.userId === currentUserId)) {
+      list.unshift({
+        socketId: 'local-self',
+        userId: user.id,
+        name: user.name || 'Demo Admin',
+        email: user.email || 'demo.admin@intellmeet.io',
+        role: user.role || 'admin',
+        isMuted: false,
+        isVideoOff: false,
+        isScreenSharing: false,
+        isSpeaking: false,
+        joinedAt: new Date().toISOString(),
+      });
+    }
+    return list;
+  }, [participants, user, currentUserId]);
+
   return (
     <div className="w-80 sm:w-96 h-full glass-panel border-l border-white/10 flex flex-col bg-dark-900/95 backdrop-blur-xl shadow-2xl">
       {/* Header */}
@@ -22,7 +45,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
         <div className="flex items-center space-x-2">
           <Users className="w-4 h-4 text-brand-400" />
           <h2 className="text-sm font-bold uppercase tracking-wider text-white">
-            Participants ({participants.length})
+            Participants ({displayParticipants.length})
           </h2>
         </div>
         <button
@@ -36,14 +59,21 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
 
       {/* Participants List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-        {participants.map((p) => {
-          const isYou = p.userId === currentUserId;
+        {displayParticipants.map((p) => {
+          const isYou = p.userId === currentUserId || p.userId === user?.id;
           const isHost = p.userId === hostId || p.role === 'admin';
           const isSpeaking = p.isSpeaking && !p.isMuted;
-          const participantName =
-            p.name === 'Project Mentor (Evaluator)' || p.name?.includes('Project Mentor') || p.name?.includes('Mentor')
-              ? 'Demo Admin'
-              : p.name;
+          const isDemoAdmin =
+            p.name === 'Project Mentor (Evaluator)' ||
+            p.name?.includes('Mentor') ||
+            p.name === 'Demo Admin' ||
+            p.email === 'mentor.evaluator@intellmeet.io';
+          const participantName = isDemoAdmin ? 'Demo Admin' : p.name;
+          const participantEmail = isDemoAdmin
+            ? 'demo.admin@intellmeet.io'
+            : p.email === 'mentor.evaluator@intellmeet.io'
+              ? 'demo.admin@intellmeet.io'
+              : p.email;
 
           return (
             <div
@@ -96,7 +126,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                         <Volume2 className="w-2.5 h-2.5 animate-pulse" /> Speaking...
                       </span>
                     ) : (
-                      <span className="text-slate-400 truncate">{p.email}</span>
+                      <span className="text-slate-400 truncate">{participantEmail}</span>
                     )}
                   </div>
                 </div>

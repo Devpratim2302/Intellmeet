@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import { IntellMeetLogo } from '../components/IntellMeetLogo';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -58,9 +59,7 @@ export const LoginPage: React.FC = () => {
 
       <div className="w-full max-w-md glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl relative">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center mx-auto mb-4 text-brand-400">
-            <LogIn className="w-6 h-6" />
-          </div>
+          <IntellMeetLogo className="w-14 h-14 rounded-2xl shadow-xl shadow-blue-500/25 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Sign In to IntellMeet
           </h1>

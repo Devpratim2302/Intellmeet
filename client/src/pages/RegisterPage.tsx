@@ -5,12 +5,12 @@ import {
   User,
   Mail,
   Lock,
-  UserPlus,
   AlertCircle,
   Loader2,
   Shield,
   CheckCircle2,
 } from 'lucide-react';
+import { IntellMeetLogo } from '../components/IntellMeetLogo';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -54,9 +54,7 @@ export const RegisterPage: React.FC = () => {
 
       <div className="w-full max-w-md glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl relative">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto mb-4 text-indigo-400">
-            <UserPlus className="w-6 h-6" />
-          </div>
+          <IntellMeetLogo className="w-14 h-14 rounded-2xl shadow-xl shadow-blue-500/25 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Create an Account
           </h1>
