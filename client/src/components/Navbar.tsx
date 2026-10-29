@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Video, Sparkles, LogOut, LayoutDashboard, Building2, CheckSquare, Camera, Loader2, Sun, Moon } from 'lucide-react';
+import { Video, LogOut, LayoutDashboard, Building2, CheckSquare, Camera, Loader2, Sun, Moon } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/Avatar';
 import { IntellMeetLogo } from './IntellMeetLogo';
@@ -50,9 +50,8 @@ export const Navbar: React.FC = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2.5 group">
           <IntellMeetLogo className="w-10 h-10 rounded-2xl shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform duration-200 logo-brand-icon" />
-          <span className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5 logo-brand-text">
+          <span className="text-xl font-extrabold tracking-tight text-white logo-brand-text">
             IntellMeet
-            <Sparkles className="w-3.5 h-3.5 text-brand-400 fill-brand-400 logo-brand-sparkle" />
           </span>
         </Link>
 

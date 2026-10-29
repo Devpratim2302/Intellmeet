@@ -3,6 +3,7 @@ import { Task, ITask, TaskStatus, TaskPriority } from '../models/task.model.js';
 import { ActionItem } from '../models/action-item.model.js';
 import { Meeting } from '../models/meeting.model.js';
 import { User } from '../models/user.model.js';
+import { Workspace } from '../models/workspace.model.js';
 import { notificationService } from './notification.service.js';
 
 export interface TaskFilterOptions {
@@ -156,49 +157,90 @@ export class TaskService {
   }
 
   /**
-   * Get tasks with comprehensive filtering
+   * Get tasks with comprehensive filtering and user-scoped data isolation.
+   * Users only see tasks they created, are assigned to, or belong to workspaces/meetings they are members of.
+   * In Demo Mode, Demo Admin sees the pre-provisioned evaluation tasks.
    */
   async getTasks(filter: TaskFilterOptions, currentUserId?: string): Promise<ITask[]> {
-    const query: any = {};
+    const conditions: any[] = [];
+
+    // Isolate tasks to current user's realm (creator, assignee, workspace member, meeting participant)
+    if (currentUserId && mongoose.Types.ObjectId.isValid(currentUserId)) {
+      const userObjId = new mongoose.Types.ObjectId(currentUserId);
+
+      // Find workspaces where user is owner or member
+      const userWorkspaces = await Workspace.find({
+        $or: [{ owner: userObjId }, { 'members.user': userObjId }],
+      }).select('_id');
+      const workspaceIds = userWorkspaces.map((w) => w._id);
+
+      // Find meetings where user is host or participant
+      const userMeetings = await Meeting.find({
+        $or: [{ host: userObjId }, { participants: userObjId }],
+      }).select('_id');
+      const meetingIds = userMeetings.map((m) => m._id);
+
+      const accessConditions: any[] = [
+        { createdBy: userObjId },
+        { assignee: userObjId },
+      ];
+      if (workspaceIds.length > 0) {
+        accessConditions.push({ workspace: { $in: workspaceIds } });
+      }
+      if (meetingIds.length > 0) {
+        accessConditions.push({ meeting: { $in: meetingIds } });
+      }
+
+      conditions.push({ $or: accessConditions });
+    }
 
     if (filter.workspaceId) {
       if (mongoose.Types.ObjectId.isValid(filter.workspaceId)) {
-        query.workspace = new mongoose.Types.ObjectId(filter.workspaceId);
+        conditions.push({ workspace: new mongoose.Types.ObjectId(filter.workspaceId) });
       }
     }
 
     if (filter.meetingId) {
       if (mongoose.Types.ObjectId.isValid(filter.meetingId)) {
-        query.meeting = new mongoose.Types.ObjectId(filter.meetingId);
+        conditions.push({ meeting: new mongoose.Types.ObjectId(filter.meetingId) });
       }
     }
 
     if (filter.roomId) {
-      query.roomId = filter.roomId.trim().toLowerCase();
+      conditions.push({ roomId: filter.roomId.trim().toLowerCase() });
     }
 
     if (filter.status) {
-      query.status = filter.status;
+      conditions.push({ status: filter.status });
     }
 
     if (filter.priority) {
-      query.priority = filter.priority;
+      conditions.push({ priority: filter.priority });
     }
 
     if (filter.assigneeId) {
       if (filter.assigneeId === 'me' && currentUserId) {
-        query.assignee = new mongoose.Types.ObjectId(currentUserId);
+        conditions.push({ assignee: new mongoose.Types.ObjectId(currentUserId) });
       } else if (mongoose.Types.ObjectId.isValid(filter.assigneeId)) {
-        query.assignee = new mongoose.Types.ObjectId(filter.assigneeId);
+        conditions.push({ assignee: new mongoose.Types.ObjectId(filter.assigneeId) });
       }
     }
 
     if (filter.search) {
       const regex = new RegExp(filter.search.trim(), 'i');
-      query.$or = [{ title: regex }, { description: regex }, { assigneeName: regex }];
+      conditions.push({
+        $or: [{ title: regex }, { description: regex }, { assigneeName: regex }],
+      });
     }
 
-    return Task.find(query)
+    const finalQuery =
+      conditions.length === 0
+        ? {}
+        : conditions.length === 1
+          ? conditions[0]
+          : { $and: conditions };
+
+    return Task.find(finalQuery)
       .sort({ createdAt: -1 })
       .populate('assignee', 'name email avatar')
       .populate('createdBy', 'name email avatar')

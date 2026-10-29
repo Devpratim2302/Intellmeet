@@ -13,7 +13,6 @@ import {
   AlertCircle,
   Copy,
   Check,
-  Radio,
   Trash2,
   FileText,
   Sparkles,
@@ -126,10 +125,6 @@ export const MeetingsPage: React.FC = () => {
       {/* Top Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-8 border-b border-white/10 gap-4">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/25 mb-3 text-brand-400 text-xs font-semibold">
-            <Radio className="w-3.5 h-3.5 animate-pulse text-brand-400" />
-            <span>Development Block 2: Meetings & WebRTC</span>
-          </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Meeting Rooms
           </h1>

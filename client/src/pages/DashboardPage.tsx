@@ -16,7 +16,6 @@ import {
   Check,
   Trash2,
   Loader2,
-  Radio,
   Clock,
   ExternalLink,
   FileText,
@@ -68,10 +67,6 @@ export const DashboardPage: React.FC = () => {
       {/* Welcome Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-white/10 gap-4">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 mb-3 text-emerald-400 text-xs font-semibold">
-            <Radio className="w-3.5 h-3.5 animate-pulse" />
-            <span>Workspace Active</span>
-          </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Welcome back,{' '}
             {user?.name === 'Project Mentor (Evaluator)' || user?.name?.includes('Mentor')

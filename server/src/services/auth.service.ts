@@ -257,6 +257,25 @@ export class AuthService {
             createdBy: user._id,
           },
         ]);
+      } else {
+        // Ensure legacy demo tasks are attached to this demo user & workspace
+        await Task.updateMany(
+          {
+            title: {
+              $in: [
+                'Verify HD WebRTC Audio, Video & Screen Sharing',
+                'Test Live Speech Transcription & AI Summary Generation',
+                'Inspect Workspace Administration & Role Permissions',
+              ],
+            },
+          },
+          {
+            $set: {
+              createdBy: user._id,
+              workspace: workspace._id,
+            },
+          }
+        );
       }
     } catch (provisionErr) {
       console.warn('Demo environment auto-provision notice:', provisionErr);
