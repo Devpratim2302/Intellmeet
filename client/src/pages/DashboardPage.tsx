@@ -167,7 +167,6 @@ export const DashboardPage: React.FC = () => {
             <Video className="w-5 h-5 text-brand-400" />
             <span>Your Meeting Rooms ({meetings.length})</span>
           </h2>
-          <span className="text-xs text-slate-400">Auto-synced</span>
         </div>
 
         {isLoading ? (
