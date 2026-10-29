@@ -110,7 +110,27 @@ export class TaskService {
       { path: 'meeting', select: 'title roomId' },
     ]);
 
-    // Dispatch assignment notification if assignee is different from creator
+    // 1. Dispatch confirmation notification to the task creator
+    try {
+      await notificationService.createNotification({
+        recipient: creatorUserId,
+        sender: creatorUserId,
+        type: 'task_created',
+        title: 'Task Created',
+        message: `Task "${task.title}" created successfully${assigneeDisplayName ? ` and assigned to ${assigneeDisplayName}` : ''}`,
+        link: `/tasks?taskId=${task.id}`,
+        metadata: {
+          taskId: task.id,
+          workspaceId: task.workspace?.toString(),
+          meetingId: task.meeting?.toString(),
+          roomId: task.roomId,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('[TaskService] Creator task notification delivery failed:', notifErr);
+    }
+
+    // 2. Dispatch assignment notification if assignee is different from creator
     if (assigneeObjId && assigneeObjId.toString() !== creatorUserId) {
       try {
         await notificationService.createNotification({
@@ -128,7 +148,7 @@ export class TaskService {
           },
         });
       } catch (notifErr) {
-        console.warn('[TaskService] Notification delivery failed:', notifErr);
+        console.warn('[TaskService] Assignee task notification delivery failed:', notifErr);
       }
     }
 

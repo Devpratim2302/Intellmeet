@@ -1,6 +1,9 @@
 export type NotificationType =
   | 'task_assigned'
+  | 'task_created'
   | 'task_status_changed'
+  | 'meeting_scheduled'
+  | 'meeting_reminder'
   | 'meeting_ended'
   | 'summary_ready'
   | 'action_item_assigned'

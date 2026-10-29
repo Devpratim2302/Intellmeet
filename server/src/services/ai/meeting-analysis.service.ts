@@ -374,6 +374,26 @@ export class MeetingAnalysisService {
     });
 
     await actionItem.save();
+
+    if (data.userId) {
+      try {
+        await notificationService.createNotification({
+          recipient: data.userId,
+          sender: data.userId,
+          type: 'task_created',
+          title: 'Task Created',
+          message: `Action item "${actionItem.title}" created for meeting ${meeting.roomId}`,
+          link: `/meetings/${meeting.roomId}`,
+          metadata: {
+            actionItemId: actionItem.id,
+            roomId: meeting.roomId,
+          },
+        });
+      } catch (err) {
+        console.warn('[MeetingAnalysisService] Action item notification error:', err);
+      }
+    }
+
     return actionItem;
   }
 

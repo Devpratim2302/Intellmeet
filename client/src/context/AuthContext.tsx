@@ -6,6 +6,7 @@ import {
   RegisterCredentials,
   AuthResponse,
 } from '../types/auth.types';
+import { socketService } from '../services/socket.service';
 
 interface AuthContextType {
   user: User | null;
@@ -94,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('intellmeet_refresh_token', refreshToken);
     }
     localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+    socketService.connect();
   };
 
   const register = async (credentials: RegisterCredentials) => {
@@ -106,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('intellmeet_refresh_token', refreshToken);
     }
     localStorage.setItem('intellmeet_user', JSON.stringify(registeredUser));
+    socketService.connect();
   };
 
   const loginDemo = async () => {
@@ -124,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('intellmeet_refresh_token', refreshToken);
       }
       localStorage.setItem('intellmeet_user', JSON.stringify(loggedInUser));
+      socketService.connect();
     } catch {
       // Fallback: try regular login with demo admin credentials or register on the fly
       try {
@@ -159,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('intellmeet_token');
       localStorage.removeItem('intellmeet_refresh_token');
       localStorage.removeItem('intellmeet_user');
+      socketService.disconnect();
     }
   };
 

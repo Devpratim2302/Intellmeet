@@ -120,6 +120,7 @@ export const SummaryActionModal: React.FC<SummaryActionModalProps> = ({
         priority: newPriority,
       });
       setActionItems((prev) => [created, ...prev]);
+      window.dispatchEvent(new CustomEvent('notification:refresh'));
       setNewTitle('');
       setNewAssignee('');
       setNewDueDate('');

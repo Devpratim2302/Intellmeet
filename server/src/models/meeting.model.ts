@@ -14,6 +14,7 @@ export interface IMeeting extends Document {
   scheduledEndTime?: Date;
   actualStartTime?: Date;
   actualEndTime?: Date;
+  reminderSent?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,6 +81,11 @@ const meetingSchema = new Schema<IMeeting>(
     actualEndTime: {
       type: Date,
       default: null,
+    },
+    reminderSent: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   {

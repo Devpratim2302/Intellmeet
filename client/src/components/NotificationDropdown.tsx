@@ -38,7 +38,10 @@ export const NotificationDropdown: React.FC = () => {
     // Listen to real-time notifications over Socket.io
     const socket = socketService.getSocket();
     const handleNewNotification = (newNotif: NotificationItem) => {
-      setNotifications((prev) => [newNotif, ...prev]);
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
       setUnreadCount((prev) => prev + 1);
       setToastNotification(newNotif);
 
@@ -50,8 +53,26 @@ export const NotificationDropdown: React.FC = () => {
 
     socket.on('notification:new', handleNewNotification);
 
+    // Refresh notifications when tab regains focus
+    const handleFocus = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // Listen to local refresh event (dispatched on task/meeting creation)
+    const handleRefresh = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('notification:refresh', handleRefresh);
+
+    // Background interval check every 15s to keep unread badges strictly accurate
+    const interval = setInterval(fetchNotifications, 15000);
+
     return () => {
       socket.off('notification:new', handleNewNotification);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('notification:refresh', handleRefresh);
+      clearInterval(interval);
     };
   }, []);
 
@@ -112,8 +133,11 @@ export const NotificationDropdown: React.FC = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'task_assigned':
+      case 'task_created':
       case 'task_status_changed':
         return <CheckSquare className="w-4 h-4 text-amber-400" />;
+      case 'meeting_scheduled':
+      case 'meeting_reminder':
       case 'meeting_ended':
         return <Video className="w-4 h-4 text-blue-400" />;
       case 'summary_ready':
@@ -137,7 +161,7 @@ export const NotificationDropdown: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+        className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors focus:outline-none"
         title="Notifications"
       >
         <Bell className="w-4 h-4" />

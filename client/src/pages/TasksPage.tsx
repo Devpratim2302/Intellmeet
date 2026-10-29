@@ -114,6 +114,7 @@ export const TasksPage: React.FC = () => {
     mutationFn: (data: CreateTaskDTO) => taskApi.createTask(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      window.dispatchEvent(new CustomEvent('notification:refresh'));
       closeModal();
     },
   });

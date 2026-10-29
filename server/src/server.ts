@@ -4,6 +4,7 @@ import { connectDB, disconnectDB } from './config/db.js';
 import { config } from './config/env.js';
 import { initSocketServer } from './sockets/index.js';
 import { initRedisAdapter, closeRedisAdapter } from './sockets/redis.js';
+import { meetingReminderService } from './services/meeting-reminder.service.js';
 
 const startServer = async () => {
   try {
@@ -28,6 +29,7 @@ const startServer = async () => {
       console.log(`📡 URL: http://localhost:${config.port}`);
       console.log(`🛡️  Health: http://localhost:${config.port}/api/health`);
       console.log(`⚡ Socket.io: Connected & WebRTC signaling ready`);
+      meetingReminderService.start(60000);
       console.log(`===============================================`);
     });
 
@@ -37,6 +39,8 @@ const startServer = async () => {
     const shutdown = async (signal: string) => {
       if (isShuttingDown) return;
       isShuttingDown = true;
+
+      meetingReminderService.stop();
 
       console.log(`\n[Server] Received ${signal}. Initiating graceful shutdown...`);
 

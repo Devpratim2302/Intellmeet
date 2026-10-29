@@ -16,7 +16,6 @@ export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,7 +34,7 @@ export const RegisterPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await register({ name, email, password, role });
+      await register({ name, email, password });
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const msg =
@@ -132,35 +131,7 @@ export const RegisterPage: React.FC = () => {
             </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Role
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole('user')}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                  role === 'user'
-                    ? 'border-brand-500 bg-brand-500/10 text-brand-300 shadow-glow-brand'
-                    : 'border-white/10 bg-dark-900/40 text-slate-400 hover:text-white'
-                }`}
-              >
-                Team Member (User)
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                  role === 'admin'
-                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300 shadow-glow-purple'
-                    : 'border-white/10 bg-dark-900/40 text-slate-400 hover:text-white'
-                }`}
-              >
-                Workspace Admin
-              </button>
-            </div>
-          </div>
+
 
           <button
             id="register-submit-btn"

@@ -73,6 +73,7 @@ export const MeetingsPage: React.FC = () => {
         title: title.trim(),
         description: description.trim(),
       });
+      window.dispatchEvent(new CustomEvent('notification:refresh'));
       setMeetings((prev) => [newMeeting, ...prev]);
       setTitle('');
       setDescription('');

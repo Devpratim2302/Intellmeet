@@ -21,6 +21,7 @@ export const CreateMeetingPage: React.FC = () => {
     mutationFn: (payload: CreateMeetingPayload) => meetingApi.createMeeting(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
+      window.dispatchEvent(new CustomEvent('notification:refresh'));
       navigate(`/meetings/${data.roomId}`);
     },
     onError: (err: any) => {

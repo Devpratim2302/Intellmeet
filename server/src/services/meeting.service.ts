@@ -41,6 +41,36 @@ export class MeetingService {
     });
 
     await meeting.save();
+
+    // Dispatch notification to user for meeting scheduled / created
+    try {
+      const isScheduled = !!meeting.scheduledStartTime;
+      const formattedTime = meeting.scheduledStartTime
+        ? new Date(meeting.scheduledStartTime).toLocaleString([], {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })
+        : null;
+
+      await notificationService.createNotification({
+        recipient: userId,
+        sender: userId,
+        type: isScheduled ? 'meeting_scheduled' : 'general',
+        title: isScheduled ? 'Meeting Scheduled' : 'New Meeting Created',
+        message: isScheduled
+          ? `Meeting "${meeting.title}" scheduled for ${formattedTime}. Room Code: ${meeting.roomId}`
+          : `Meeting "${meeting.title}" is ready. Room Code: ${meeting.roomId}`,
+        link: `/meetings/${meeting.roomId}`,
+        metadata: {
+          meetingId: meeting.id,
+          roomId: meeting.roomId,
+          scheduledStartTime: meeting.scheduledStartTime,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('[MeetingService] Notification dispatch warning:', notifErr);
+    }
+
     return meeting.populate('host', 'name email avatar role');
   }
 

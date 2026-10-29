@@ -12,7 +12,7 @@ import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
 import { useMeetingUiStore } from '../stores/meetingUiStore';
-import { Copy, Check, Clock, Terminal, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle } from 'lucide-react';
+import { Copy, Check, Clock, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -31,11 +31,9 @@ export const MeetingRoomPage: React.FC = () => {
     isParticipantsOpen,
     isChatOpen,
     isTranscriptOpen,
-    showLogs,
     toggleParticipants,
     toggleChat,
     toggleTranscript,
-    toggleLogs,
     resetMeetingUi,
   } = useMeetingUiStore();
 
@@ -93,7 +91,6 @@ export const MeetingRoomPage: React.FC = () => {
     isScreenSharing,
     activeScreenSharePeerId,
     isSpeaking,
-    signalingLogs,
     messages,
     unreadCount,
     toggleAudio,
@@ -385,19 +382,6 @@ export const MeetingRoomPage: React.FC = () => {
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             <span className="font-mono">{formatDuration(elapsedSeconds)}</span>
           </div>
-
-          <button
-            onClick={toggleLogs}
-            className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors ${
-              showLogs
-                ? 'bg-indigo-600 text-white border-indigo-500'
-                : 'bg-white/5 text-slate-400 hover:text-white border-white/5'
-            }`}
-            title="Inspect WebRTC signaling events"
-          >
-            <Terminal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Signaling Logs</span>
-          </button>
         </div>
       </header>
 
@@ -504,50 +488,7 @@ export const MeetingRoomPage: React.FC = () => {
 
         </main>
 
-        {/* Signaling Inspector Drawer */}
-        {showLogs && (
-          <aside className="w-80 h-full glass-panel border-l border-white/10 p-4 flex flex-col bg-dark-900/95 backdrop-blur-xl z-20 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-                WebRTC Signaling
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono">Live</span>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 font-mono text-[11px]">
-              {signalingLogs.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No events yet</p>
-              ) : (
-                signalingLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-2 rounded-lg bg-dark-900/60 border border-white/5 space-y-0.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-[9px] font-bold uppercase px-1 py-0.2 rounded ${
-                          log.type === 'offer'
-                            ? 'bg-indigo-500/20 text-indigo-300'
-                            : log.type === 'answer'
-                              ? 'bg-purple-500/20 text-purple-300'
-                              : log.type === 'ice'
-                                ? 'bg-amber-500/20 text-amber-300'
-                                : log.type === 'join'
-                                  ? 'bg-emerald-500/20 text-emerald-300'
-                                  : 'bg-slate-500/20 text-slate-300'
-                        }`}
-                      >
-                        {log.type}
-                      </span>
-                      <span className="text-[10px] text-slate-500">{log.timestamp}</span>
-                    </div>
-                    <p className="text-slate-300 break-words">{log.message}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </aside>
-        )}
+
 
         {/* Participant Area Drawer */}
         {isParticipantsOpen && (

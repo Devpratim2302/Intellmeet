@@ -4,11 +4,15 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(): Socket {
-    if (this.socket && this.socket.connected) {
-      return this.socket;
+    const token = localStorage.getItem('intellmeet_token');
+    if (this.socket) {
+      if (this.socket.connected && (this.socket.auth as any)?.token === token) {
+        return this.socket;
+      }
+      this.socket.disconnect();
+      this.socket = null;
     }
 
-    const token = localStorage.getItem('intellmeet_token');
     const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
 
     this.socket = io(socketUrl, {
