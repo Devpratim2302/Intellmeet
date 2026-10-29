@@ -179,8 +179,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center justify-between text-[10px] text-slate-500 px-1">
-          <span>Shift + Enter for new line</span>
+        <div className="flex items-center justify-end text-[10px] text-slate-500 px-1">
           <span>{inputText.length}/2000</span>
         </div>
       </form>
