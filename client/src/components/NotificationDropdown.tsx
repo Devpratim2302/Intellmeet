@@ -164,9 +164,9 @@ export const NotificationDropdown: React.FC = () => {
         className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors focus:outline-none"
         title="Notifications"
       >
-        <Bell className="w-4 h-4" />
+        <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-rose-500 rounded-full border border-dark-950 animate-pulse shadow-glow-rose">
+          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[14px] h-[14px] px-1 text-[9px] font-bold text-white bg-rose-500 rounded-full ring-1 ring-dark-950 shadow-sm leading-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
