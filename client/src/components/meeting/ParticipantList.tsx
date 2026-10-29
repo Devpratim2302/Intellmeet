@@ -61,7 +61,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
         {displayParticipants.map((p) => {
           const isYou = p.userId === currentUserId || p.userId === user?.id;
-          const isHost = p.userId === hostId || p.role === 'admin';
+          const isHost = Boolean(hostId && p.userId && String(p.userId) === String(hostId));
           const isSpeaking = p.isSpeaking && !p.isMuted;
           const isDemoAdmin =
             p.name === 'Project Mentor (Evaluator)' ||
@@ -114,7 +114,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                     {isHost && (
                       <span
                         className="p-0.5 rounded bg-amber-500/10 text-amber-400"
-                        title="Host / Admin"
+                        title="Meeting Host"
                       >
                         <Crown className="w-3 h-3" />
                       </span>

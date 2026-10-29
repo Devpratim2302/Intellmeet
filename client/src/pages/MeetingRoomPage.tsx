@@ -52,7 +52,8 @@ export const MeetingRoomPage: React.FC = () => {
         .then((m) => {
           setMeetingData(m);
           setMeetingTitle(m.title);
-          setMeetingHostId(m.host?.id || (m.host as any)?._id || (m.host as any));
+          const rawHost = m.host?.id || (m.host as any)?._id || (m.host as any);
+          setMeetingHostId(rawHost ? String(rawHost) : undefined);
           if (m.status === 'completed' || m.status === 'cancelled') {
             setIsEndedLocally(true);
           }
