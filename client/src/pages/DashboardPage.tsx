@@ -111,8 +111,7 @@ export const DashboardPage: React.FC = () => {
             </div>
             <h2 className="text-lg font-bold text-white mb-1">Instant Meeting</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Launch a zero-setup WebRTC room immediately and invite team members with a
-              1-click link.
+              Launch a meeting room immediately and invite the team members in 1 click.
             </p>
           </div>
           <div className="mt-6 flex items-center text-xs font-semibold text-brand-400 group-hover:text-brand-300">
@@ -151,8 +150,7 @@ export const DashboardPage: React.FC = () => {
             </div>
             <h2 className="text-lg font-bold text-white mb-1">Schedule Call</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Plan future standups, sprint reviews, or architecture discussions with
-              scheduled times.
+              Plan future meetings, reviews or discussions in scheduled time.
             </p>
           </div>
           <div className="mt-6 flex items-center text-xs font-semibold text-purple-400 group-hover:text-purple-300">
