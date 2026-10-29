@@ -238,7 +238,7 @@ export const TranscriptViewerModal: React.FC<TranscriptViewerModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-white/10 bg-dark-950/60 flex items-center justify-between text-xs text-slate-400">
           <span>
-            {segments.length} segment{segments.length !== 1 ? 's' : ''} recorded in MongoDB
+            {segments.length} segment{segments.length !== 1 ? 's' : ''}
           </span>
           <button
             onClick={onClose}

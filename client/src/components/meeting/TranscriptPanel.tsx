@@ -268,13 +268,6 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
           })
         )}
       </div>
-
-      {/* Footer Info */}
-      <div className="p-3 border-t border-white/10 bg-dark-950/60 text-center text-[11px] text-slate-400">
-        <span>
-          {segments.length} segment{segments.length !== 1 ? 's' : ''} recorded in MongoDB
-        </span>
-      </div>
     </aside>
   );
 };
