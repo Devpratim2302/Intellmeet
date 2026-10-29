@@ -117,7 +117,6 @@ export const MeetingRoomPage: React.FC = () => {
     isRecording,
     recordingSeconds,
     hasRecordedAudio,
-    providerName,
     toggleTranscription,
     toggleRecording,
     stopAudioCapture,
@@ -569,7 +568,6 @@ export const MeetingRoomPage: React.FC = () => {
               segments={segments}
               isTranscribing={isTranscribing}
               onToggleTranscription={toggleTranscription}
-              providerName={providerName}
               onClearTranscript={clearTranscript}
             />
           </div>

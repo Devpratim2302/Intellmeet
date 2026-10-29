@@ -20,7 +20,6 @@ export interface TranscriptPanelProps {
   segments: TranscriptSegment[];
   isTranscribing: boolean;
   onToggleTranscription: () => void;
-  providerName?: string;
   onClearTranscript?: () => void;
 }
 
@@ -30,7 +29,6 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   segments,
   isTranscribing,
   onToggleTranscription,
-  providerName = 'mock',
   onClearTranscript,
 }) => {
   const { user } = useAuth();
@@ -103,12 +101,6 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400">
-              Provider:{' '}
-              <span className="text-brand-300 font-mono font-medium">
-                {providerName === 'mock' ? 'Local / Mock AI' : providerName.toUpperCase()}
-              </span>
-            </p>
           </div>
         </div>
 
