@@ -28,6 +28,8 @@ import {
   Tag,
   Activity,
   ExternalLink,
+  Download,
+  ChevronDown,
 } from 'lucide-react';
 
 export const PostMeetingDashboardPage: React.FC = () => {
@@ -41,6 +43,7 @@ export const PostMeetingDashboardPage: React.FC = () => {
   const [transcriptSearch, setTranscriptSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'summary' | 'action_items' | 'tasks' | 'transcript'>('summary');
   const [convertingItemId, setConvertingItemId] = useState<string | null>(null);
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
 
   // 1. Fetch meeting metadata
   const { data: meeting } = useQuery<Meeting>({
@@ -162,6 +165,119 @@ export const PostMeetingDashboardPage: React.FC = () => {
     setTimeout(() => setCopiedTranscript(false), 2000);
   };
 
+  const handleDownloadMeetingReport = () => {
+    const title = meeting?.title || `Meeting: ${roomId}`;
+    const dateStr = meeting?.createdAt ? new Date(meeting.createdAt).toLocaleString() : new Date().toLocaleString();
+    const hostName = meeting?.host?.name || 'Meeting Host';
+
+    let content = `# ${title}\n\n`;
+    content += `**Date:** ${dateStr}  \n`;
+    content += `**Room ID:** \`${roomId}\`  \n`;
+    content += `**Host:** ${hostName}  \n`;
+    content += `**Status:** ${meeting?.status ? meeting.status.toUpperCase() : 'COMPLETED'}  \n\n`;
+    content += `---\n\n`;
+
+    content += `## Executive Summary\n\n`;
+    if (summary?.overview) {
+      content += `${summary.overview}\n\n`;
+    } else {
+      content += `*No AI overview recorded.*\n\n`;
+    }
+
+    if (summary?.keyPoints && summary.keyPoints.length > 0) {
+      content += `## Key Discussion Points\n\n`;
+      summary.keyPoints.forEach((pt: string) => {
+        content += `- ${pt}\n`;
+      });
+      content += `\n`;
+    }
+
+    if (summary?.decisions && summary.decisions.length > 0) {
+      content += `## Decisions Made\n\n`;
+      summary.decisions.forEach((d: string) => {
+        content += `- ${d}\n`;
+      });
+      content += `\n`;
+    }
+
+    if (actionItems && actionItems.length > 0) {
+      content += `## Action Items (${actionItems.length})\n\n`;
+      actionItems.forEach((item: any, idx: number) => {
+        content += `${idx + 1}. **${item.title}**\n`;
+        if (item.description) content += `   - Description: ${item.description}\n`;
+        if (item.priority) content += `   - Priority: ${item.priority.toUpperCase()}\n`;
+        if (item.assigneeName) content += `   - Assignee: ${item.assigneeName}\n`;
+        if (item.status) content += `   - Status: ${item.status}\n`;
+      });
+      content += `\n`;
+    }
+
+    if (meetingTasks && meetingTasks.length > 0) {
+      content += `## Trackable Tasks (${meetingTasks.length})\n\n`;
+      meetingTasks.forEach((task: any, idx: number) => {
+        content += `${idx + 1}. [${task.status.toUpperCase().replace('_', ' ')}] **${task.title}** (Priority: ${task.priority})\n`;
+        if (task.assigneeName) content += `   - Assignee: ${task.assigneeName}\n`;
+        if (task.dueDate) content += `   - Due: ${new Date(task.dueDate).toLocaleDateString()}\n`;
+      });
+      content += `\n`;
+    }
+
+    if (transcriptData?.segments && transcriptData.segments.length > 0) {
+      content += `## Full Meeting Transcript\n\n`;
+      transcriptData.segments.forEach((seg: any) => {
+        const time = seg.timestamp ? new Date(seg.timestamp).toLocaleTimeString() : '';
+        const speaker = seg.speaker?.name || 'Speaker';
+        content += `[${time}] **${speaker}:** ${seg.text}\n\n`;
+      });
+    }
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}_Meeting_Report.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadTranscriptText = () => {
+    if (!transcriptData?.segments || transcriptData.segments.length === 0) {
+      alert('No transcript segments recorded for this meeting yet.');
+      return;
+    }
+    const lines = transcriptData.segments.map((seg: any) => {
+      const time = seg.timestamp ? `[${new Date(seg.timestamp).toLocaleTimeString()}] ` : '';
+      const speaker = seg.speaker?.name || 'Unknown';
+      return `${time}${speaker}: ${seg.text}`;
+    });
+    const content = lines.join('\n\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(meeting?.title || roomId).replace(/[^a-zA-Z0-9_-]/g, '_')}_transcript.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadMeetingJson = () => {
+    const data = {
+      meeting,
+      summary,
+      actionItems,
+      tasks: meetingTasks,
+      transcript: transcriptData?.segments || [],
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(meeting?.title || roomId).replace(/[^a-zA-Z0-9_-]/g, '_')}_archive.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleConvertActionItem = (item: ActionItem) => {
     setConvertingItemId(item.id);
     convertTaskMutation.mutate(item.id);
@@ -228,6 +344,71 @@ export const PostMeetingDashboardPage: React.FC = () => {
             <Kanban className="w-4 h-4 text-amber-400" />
             <span>Task Board</span>
           </Link>
+
+          {/* Download Meeting Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDownloadMenuOpen((prev) => !prev)}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-white text-xs font-semibold flex items-center space-x-2 border border-emerald-500/40 shadow-sm transition-all"
+              title="Download meeting report, notes, or transcript"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>Download Meet</span>
+              <ChevronDown className="w-3.5 h-3.5 text-emerald-400 ml-0.5" />
+            </button>
+
+            {isDownloadMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsDownloadMenuOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-dark-900 border border-white/10 shadow-2xl z-50 p-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      setIsDownloadMenuOpen(false);
+                      handleDownloadMeetingReport();
+                    }}
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors flex items-start space-x-2.5 text-xs text-slate-200"
+                  >
+                    <FileText className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Full Meeting Report (.md)</p>
+                      <p className="text-[11px] text-slate-400">Includes summary, decisions, action items & transcript</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsDownloadMenuOpen(false);
+                      handleDownloadTranscriptText();
+                    }}
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors flex items-start space-x-2.5 text-xs text-slate-200"
+                  >
+                    <Download className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Meeting Transcript (.txt)</p>
+                      <p className="text-[11px] text-slate-400">Timestamped dialogue with speaker names</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsDownloadMenuOpen(false);
+                      handleDownloadMeetingJson();
+                    }}
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors flex items-start space-x-2.5 text-xs text-slate-200"
+                  >
+                    <ExternalLink className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Complete Archive (.json)</p>
+                      <p className="text-[11px] text-slate-400">Raw meeting data, tasks, and segments</p>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             onClick={() => generateSummaryMutation.mutate()}
@@ -410,22 +591,32 @@ export const PostMeetingDashboardPage: React.FC = () => {
                       <Sparkles className="w-4 h-4 text-brand-400" />
                       Executive Overview
                     </h2>
-                    <button
-                      onClick={handleCopySummary}
-                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs flex items-center gap-1.5 transition-colors border border-white/5"
-                    >
-                      {copiedSummary ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Summary</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleDownloadMeetingReport}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 hover:text-white text-xs flex items-center gap-1.5 transition-colors border border-emerald-500/30"
+                        title="Download Meeting Report (.md)"
+                      >
+                        <Download className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Download</span>
+                      </button>
+                      <button
+                        onClick={handleCopySummary}
+                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs flex items-center gap-1.5 transition-colors border border-white/5"
+                      >
+                        {copiedSummary ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy Summary</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <p className="text-sm text-slate-300 leading-relaxed">
                     {summary.overview}
@@ -767,6 +958,15 @@ export const PostMeetingDashboardPage: React.FC = () => {
                   className="pl-8 pr-3 py-1.5 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none w-48"
                 />
               </div>
+
+              <button
+                onClick={handleDownloadTranscriptText}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 hover:text-white text-xs font-medium flex items-center space-x-1.5 border border-emerald-500/30 transition-colors shrink-0"
+                title="Download transcript as text file"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Download .txt</span>
+              </button>
 
               <button
                 onClick={handleCopyTranscript}

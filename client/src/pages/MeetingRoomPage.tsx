@@ -12,7 +12,7 @@ import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
 import { useMeetingUiStore } from '../stores/meetingUiStore';
-import { Copy, Check, Clock, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle } from 'lucide-react';
+import { Copy, Check, Clock, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle, Download } from 'lucide-react';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -116,12 +116,38 @@ export const MeetingRoomPage: React.FC = () => {
     isTranscribing,
     isRecording,
     recordingSeconds,
+    hasRecordedAudio,
     providerName,
     toggleTranscription,
     toggleRecording,
     stopAudioCapture,
     clearTranscript,
+    downloadAudioRecording,
   } = useMeetingTranscription(roomId, localStream, isAudioMuted);
+
+  const handleDownloadTranscriptNotes = () => {
+    let content = `# ${meetingTitle} (${roomId})\n\n`;
+    content += `**Host:** ${meetingData?.host?.name || 'Host'}  \n`;
+    content += `**Date:** ${new Date().toLocaleString()}  \n`;
+    content += `**Status:** Completed  \n\n`;
+    content += `---\n\n## Meeting Transcript\n\n`;
+    if (segments.length === 0) {
+      content += `*No transcript segments recorded for this meeting session.*\n`;
+    } else {
+      segments.forEach((seg) => {
+        const time = seg.timestamp ? `[${new Date(seg.timestamp).toLocaleTimeString()}] ` : '';
+        content += `${time}**${seg.speaker?.name || 'Speaker'}:** ${seg.text}\n\n`;
+      });
+    }
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${meetingTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_transcript.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleCopyCode = () => {
     if (roomId) {
@@ -287,6 +313,26 @@ export const MeetingRoomPage: React.FC = () => {
               <Sparkles className="w-4 h-4 text-brand-200" />
               <span>View Post-Meeting Dashboard & Summary</span>
             </Link>
+
+            {hasRecordedAudio && (
+              <button
+                type="button"
+                onClick={() => downloadAudioRecording()}
+                className="w-full py-3 px-5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-emerald-200 font-semibold text-sm border border-emerald-500/40 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
+              >
+                <Download className="w-4 h-4 text-emerald-400" />
+                <span>Download Meeting Audio (.webm)</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleDownloadTranscriptNotes}
+              className="w-full py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white font-medium text-sm border border-white/10 flex items-center justify-center space-x-2 transition-colors"
+            >
+              <Download className="w-4 h-4 text-brand-400" />
+              <span>Download Meeting Notes & Transcript (.md)</span>
+            </button>
 
             <Link
               to="/meetings"

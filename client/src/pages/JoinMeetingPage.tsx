@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Sparkles,
-  Shield,
   Users,
   PhoneOff,
   FileText,
@@ -40,9 +39,6 @@ export const JoinMeetingPage: React.FC = () => {
       .then((s) => {
         stream = s;
         setLocalStream(s);
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-        }
       })
       .catch((err) => {
         console.warn('Camera preview not available:', err);
@@ -54,6 +50,19 @@ export const JoinMeetingPage: React.FC = () => {
       }
     };
   }, []);
+
+  // Ensure video element syncs immediately with localStream
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (videoEl && localStream) {
+      if (videoEl.srcObject !== localStream) {
+        videoEl.srcObject = localStream;
+      }
+      if (!isVideoOff) {
+        videoEl.play().catch(() => {});
+      }
+    }
+  }, [localStream, isVideoOff]);
 
   const toggleMic = () => {
     if (localStream) {
@@ -123,21 +132,33 @@ export const JoinMeetingPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         {/* Left: Camera Preview Tile */}
         <div className="space-y-4">
-          <div className="relative glass-card rounded-3xl overflow-hidden border border-white/10 bg-dark-900 aspect-video flex items-center justify-center shadow-2xl">
-            {localStream && !isVideoOff ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover transform -scale-x-100"
-              />
-            ) : (
+          <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-[#0a0e17] aspect-video flex items-center justify-center shadow-2xl">
+            <video
+              ref={(el) => {
+                videoRef.current = el;
+                if (el && localStream && el.srcObject !== localStream) {
+                  el.srcObject = localStream;
+                  if (!isVideoOff) {
+                    el.play().catch(() => {});
+                  }
+                }
+              }}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover transform -scale-x-100 ${
+                !localStream || isVideoOff ? 'hidden' : 'block'
+              }`}
+            />
+
+            {(!localStream || isVideoOff) && (
               <div className="flex flex-col items-center justify-center space-y-2">
                 <div className="w-16 h-16 rounded-full bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-300 font-bold text-xl">
                   You
                 </div>
-                <span className="text-xs text-slate-400">Camera preview is off</span>
+                <span className="text-xs text-slate-400">
+                  {isVideoOff ? 'Camera preview is off' : 'Camera is starting...'}
+                </span>
               </div>
             )}
 
@@ -191,9 +212,6 @@ export const JoinMeetingPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Join Meeting Room
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
-              Enter the unique room identifier provided by your host.
-            </p>
           </div>
 
           {endedRoomCode && (
@@ -244,11 +262,6 @@ export const JoinMeetingPage: React.FC = () => {
               {isChecking ? 'Checking Room...' : 'Enter Meeting Room'}
             </Button>
           </form>
-
-          <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-center space-x-2 text-xs text-slate-400">
-            <Shield className="w-3.5 h-3.5 text-slate-400" />
-            <span>Secure WebRTC Peer Signaling</span>
-          </div>
         </div>
       </div>
     </div>

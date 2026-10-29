@@ -13,8 +13,10 @@ export const useMeetingTranscription = (
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [providerName, setProviderName] = useState<string>('mock');
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
+  const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedAudioChunksRef = useRef<Blob[]>([]);
   const speechRecognitionRef = useRef<any>(null);
   const isTranscribingRef = useRef<boolean>(false);
   const isAudioMutedRef = useRef<boolean>(isAudioMuted);
@@ -176,6 +178,8 @@ export const useMeetingTranscription = (
 
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0 && isTranscribingRef.current) {
+          recordedAudioChunksRef.current.push(event.data);
+          setHasRecordedAudio(true);
           const duration = Math.max(1, Math.round((Date.now() - chunkStartTime) / 1000));
           chunkStartTime = Date.now();
           processAudioChunk(event.data, duration);
@@ -304,11 +308,27 @@ export const useMeetingTranscription = (
     }
   }, [roomId]);
 
+  /**
+   * Download the recorded audio file if recorded during call
+   */
+  const downloadAudioRecording = useCallback((filename?: string) => {
+    if (recordedAudioChunksRef.current.length === 0) return false;
+    const blob = new Blob(recordedAudioChunksRef.current, { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `meeting-recording-${roomId}-${new Date().toISOString().slice(0, 10)}.webm`;
+    a.click();
+    URL.revokeObjectURL(url);
+    return true;
+  }, [roomId]);
+
   return {
     segments,
     isTranscribing,
     isRecording: isTranscribing,
     recordingSeconds,
+    hasRecordedAudio,
     providerName,
     isLoadingHistory,
     startAudioCapture,
@@ -316,5 +336,6 @@ export const useMeetingTranscription = (
     toggleTranscription,
     toggleRecording: toggleTranscription,
     clearTranscript,
+    downloadAudioRecording,
   };
 };
