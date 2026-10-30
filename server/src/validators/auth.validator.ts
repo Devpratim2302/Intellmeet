@@ -37,6 +37,8 @@ export const refreshTokenSchema = z.object({
 
 export const googleAuthSchema = z.object({
   idToken: z.string().optional(),
+  code: z.string().optional(),
+  redirectUri: z.string().optional(),
   email: z.string().email('Invalid email address').optional(),
   name: z.string().optional(),
   avatar: z.string().optional(),

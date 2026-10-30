@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, ArrowLeft, Loader2, Trash2 } from 'lucide-react';
+import { X, UserPlus, ArrowLeft, Loader2, Trash2, KeyRound, ExternalLink, PlayCircle } from 'lucide-react';
 import { GoogleIcon } from './GoogleIcon';
 
 export interface GoogleAccount {
@@ -16,6 +16,7 @@ interface GoogleAccountChooserModalProps {
 }
 
 const STORAGE_KEY = 'intellmeet_saved_google_accounts';
+const CLIENT_ID_STORAGE_KEY = 'intellmeet_google_client_id';
 
 const DEFAULT_ACCOUNTS: GoogleAccount[] = [
   {
@@ -51,15 +52,23 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
         }
       }
     } catch {
-      // fallback to defaults
+      // fallback
     }
     return DEFAULT_ACCOUNTS;
   });
 
   const [activeAccountEmail, setActiveAccountEmail] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'choose' | 'add'>('choose');
+  const [viewMode, setViewMode] = useState<'choose' | 'add' | 'setup'>('choose');
   const [customEmail, setCustomEmail] = useState('');
   const [customName, setCustomName] = useState('');
+  const [clientIdInput, setClientIdInput] = useState(() => {
+    return (
+      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+      localStorage.getItem(CLIENT_ID_STORAGE_KEY) ||
+      ''
+    );
+  });
+  const [isLiveGoogleOpening, setIsLiveGoogleOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Sync saved accounts to localStorage
@@ -71,6 +80,25 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
     }
   }, [accounts]);
 
+  // Load Google Identity Services script
+  useEffect(() => {
+    if ((window as any).google?.accounts?.oauth2) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
   // Reset internal state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -79,10 +107,88 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
       setCustomName('');
       setError(null);
       setActiveAccountEmail(null);
+      setIsLiveGoogleOpening(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const activeClientId =
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    localStorage.getItem(CLIENT_ID_STORAGE_KEY) ||
+    '';
+
+  // Real Google OAuth Popup (Dennis Ivy Setup)
+  const handleLaunchLiveGooglePopup = (targetClientId?: string) => {
+    const idToUse = targetClientId || activeClientId;
+    if (!idToUse) {
+      setViewMode('setup');
+      return;
+    }
+
+    const google = (window as any).google;
+    if (!google?.accounts?.oauth2) {
+      setError('Google Identity Services SDK is still loading. Please try again in 2 seconds.');
+      return;
+    }
+
+    try {
+      setIsLiveGoogleOpening(true);
+      setError(null);
+
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: idToUse,
+        scope: 'openid email profile https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+        prompt: 'select_account',
+        callback: async (tokenResponse: any) => {
+          setIsLiveGoogleOpening(false);
+          if (tokenResponse.error) {
+            setError(`Google login cancelled: ${tokenResponse.error}`);
+            return;
+          }
+
+          if (tokenResponse.access_token) {
+            try {
+              const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: {
+                  Authorization: `Bearer ${tokenResponse.access_token}`,
+                },
+              });
+              const profile = await res.json();
+              if (profile.email) {
+                const account: GoogleAccount = {
+                  name: profile.name || profile.email.split('@')[0],
+                  email: profile.email.toLowerCase().trim(),
+                  avatar: profile.picture || '',
+                };
+                await onSelectAccount(account);
+              }
+            } catch (err: any) {
+              setError(err?.message || 'Failed to retrieve profile from Google.');
+            }
+          }
+        },
+      });
+
+      client.requestAccessToken({ prompt: 'select_account' });
+    } catch (err: any) {
+      setIsLiveGoogleOpening(false);
+      setError(err?.message || 'Could not launch Google popup. Please check your Client ID.');
+    }
+  };
+
+  const handleSaveClientIdAndLaunch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedId = clientIdInput.trim();
+    if (!trimmedId) {
+      setError('Please paste a valid Google Client ID from Google Cloud Console.');
+      return;
+    }
+
+    localStorage.setItem(CLIENT_ID_STORAGE_KEY, trimmedId);
+    setError(null);
+    handleLaunchLiveGooglePopup(trimmedId);
+  };
 
   const handleAccountClick = async (account: GoogleAccount) => {
     if (isSubmitting || activeAccountEmail) return;
@@ -91,7 +197,6 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
 
     try {
       await onSelectAccount(account);
-      // Re-order accounts so most recent is first
       setAccounts((prev) => {
         const remaining = prev.filter(
           (a) => a.email.toLowerCase() !== account.email.toLowerCase()
@@ -171,11 +276,11 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-[420px] bg-white dark:bg-[#202124] text-slate-800 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden relative transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-[430px] bg-white dark:bg-[#202124] text-slate-800 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden relative transition-all">
         {/* Top Header Controls */}
         <div className="flex items-center justify-between p-5 pb-3">
-          {viewMode === 'add' ? (
+          {viewMode !== 'choose' ? (
             <button
               onClick={() => {
                 setViewMode('choose');
@@ -204,9 +309,13 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
         </div>
 
         {/* Modal Header Copy */}
-        <div className="text-center px-6 pb-4">
+        <div className="text-center px-6 pb-3">
           <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
-            {viewMode === 'choose' ? 'Choose an account' : 'Sign in with Google'}
+            {viewMode === 'choose'
+              ? 'Choose an account'
+              : viewMode === 'setup'
+                ? 'Google OAuth Credentials'
+                : 'Sign in with Google'}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             to continue to <span className="font-semibold text-brand-600 dark:text-brand-400">IntellMeet</span>
@@ -222,8 +331,35 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
 
         {/* Mode 1: Choose Account List */}
         {viewMode === 'choose' && (
-          <div className="px-3 pb-3">
-            <div className="divide-y divide-slate-100 dark:divide-white/5 border-t border-b border-slate-100 dark:border-white/5 max-h-72 overflow-y-auto">
+          <div className="px-3 pb-3 space-y-3">
+            {/* Live Google Accounts Button if Client ID configured or setup option */}
+            <div className="px-2">
+              <button
+                type="button"
+                onClick={() => handleLaunchLiveGooglePopup()}
+                disabled={isLiveGoogleOpening}
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 text-xs font-semibold flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-sm"
+              >
+                {isLiveGoogleOpening ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Opening Google Accounts...</span>
+                  </>
+                ) : (
+                  <>
+                    <GoogleIcon className="w-4 h-4" />
+                    <span>
+                      {activeClientId
+                        ? 'Choose from Google.com Popup'
+                        : 'Connect Google Cloud Credentials'}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Account List */}
+            <div className="divide-y divide-slate-100 dark:divide-white/5 border-t border-b border-slate-100 dark:border-white/5 max-h-64 overflow-y-auto">
               {accounts.map((acc) => {
                 const isSelected = activeAccountEmail === acc.email;
                 const initial = (acc.name || acc.email || 'U').charAt(0).toUpperCase();
@@ -271,7 +407,7 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
                       {isSelected ? (
                         <div className="flex items-center space-x-1.5 text-blue-600 dark:text-blue-400 text-xs font-medium">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="hidden sm:inline">Signing in...</span>
+                          <span className="hidden sm:inline">Logging in...</span>
                         </div>
                       ) : (
                         <button
@@ -308,6 +444,18 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
                     Sign in with a different Google account
                   </div>
                 </div>
+              </button>
+            </div>
+
+            {/* Dennis Ivy Video Tutorial Reference Link */}
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={() => setViewMode('setup')}
+                className="inline-flex items-center space-x-1.5 text-[11px] text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
+              >
+                <KeyRound className="w-3 h-3" />
+                <span>Configure Google Cloud OAuth (Dennis Ivy Setup)</span>
               </button>
             </div>
           </div>
@@ -367,6 +515,76 @@ export const GoogleAccountChooserModal: React.FC<GoogleAccountChooserModalProps>
                   </>
                 ) : (
                   <span>Next & Sign In</span>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Mode 3: Dennis Ivy Google Cloud Setup */}
+        {viewMode === 'setup' && (
+          <form onSubmit={handleSaveClientIdAndLaunch} className="p-6 pt-2 space-y-4">
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 space-y-2 text-xs">
+              <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <PlayCircle className="w-4 h-4 text-red-500" />
+                  Dennis Ivy Tutorial Setup
+                </span>
+                <a
+                  href="https://youtu.be/TjMhPr59qn4?si=QS5WAlZUvPyo_yO2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline flex items-center gap-1 text-[11px]"
+                >
+                  Watch Video <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                <li>Create project on <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google Cloud Console</a></li>
+                <li>Configure OAuth Consent Screen (External)</li>
+                <li>Create OAuth Client ID (Web Application):
+                  <div className="pl-3.5 pt-0.5 space-y-0.5 font-mono text-[10px] text-slate-600 dark:text-slate-300">
+                    <div>Origin: <code className="bg-slate-200 dark:bg-white/10 px-1 py-0.5 rounded">http://localhost:5173</code></div>
+                    <div>Redirect URI: <code className="bg-slate-200 dark:bg-white/10 px-1 py-0.5 rounded">http://localhost:5173/auth/google/callback</code></div>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Google Client ID
+              </label>
+              <input
+                type="text"
+                required
+                value={clientIdInput}
+                onChange={(e) => setClientIdInput(e.target.value)}
+                placeholder="e.g. 123456789-abcdefg.apps.googleusercontent.com"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 focus:border-blue-500 dark:focus:border-blue-400 rounded-xl text-slate-900 dark:text-white text-xs placeholder-slate-400 focus:outline-none font-mono"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setViewMode('choose')}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+              >
+                Back to Chooser
+              </button>
+              <button
+                type="submit"
+                disabled={isLiveGoogleOpening}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center space-x-2 shadow-md transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isLiveGoogleOpening ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Connecting...</span>
+                  </>
+                ) : (
+                  <span>Save & Launch Google</span>
                 )}
               </button>
             </div>

@@ -74,4 +74,12 @@ export const config = {
     apiSecret: process.env.CLOUDINARY_API_SECRET || '',
     maxImageUploadSizeBytes: parseInt(process.env.MAX_IMAGE_UPLOAD_SIZE_MB || '5', 10) * 1024 * 1024,
   },
+  google: {
+    clientId: (process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '').trim(),
+    clientSecret: (process.env.GOOGLE_CLIENT_SECRET || '').trim(),
+    redirectUri: (
+      process.env.GOOGLE_REDIRECT_URI ||
+      `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/google/callback`
+    ).trim(),
+  },
 };

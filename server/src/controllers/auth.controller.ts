@@ -66,6 +66,55 @@ export const login = async (
   }
 };
 
+export const getGoogleAuthUrl = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const redirectUri = (req.query.redirectUri as string) || undefined;
+    const { url, clientId } = authService.getGoogleAuthUrl(redirectUri);
+
+    res.status(200).json({
+      success: true,
+      data: { url, clientId },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleGoogleRedirectCallback = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const code = req.query.code as string;
+    if (!code) {
+      res.redirect(`${config.clientUrl}/login?error=Google+authorization+code+missing`);
+      return;
+    }
+
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const result = await authService.googleAuth({ code, redirectUri });
+
+    res.cookie(
+      'refreshToken',
+      result.refreshToken,
+      getAuthCookieOptions(7 * 24 * 60 * 60 * 1000)
+    );
+
+    res.redirect(
+      `${config.clientUrl}/auth/google/callback?token=${encodeURIComponent(
+        result.accessToken
+      )}&refresh=${encodeURIComponent(result.refreshToken)}`
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const googleAuth = async (
   req: Request,
   res: Response,

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { config } from '../config/env.js';
 import { User, IUser } from '../models/user.model.js';
 import { Workspace } from '../models/workspace.model.js';
 import { Meeting } from '../models/meeting.model.js';
@@ -26,6 +27,8 @@ export interface LoginDTO {
 
 export interface GoogleAuthDTO {
   idToken?: string;
+  code?: string;
+  redirectUri?: string;
   email?: string;
   name?: string;
   avatar?: string;
@@ -90,6 +93,23 @@ export class AuthService {
   }
 
   /**
+   * Generates Google OAuth authorization URL with account chooser
+   */
+  getGoogleAuthUrl(customRedirectUri?: string): { url: string; clientId: string } {
+    const clientId = config.google.clientId;
+    const redirectUri = customRedirectUri || config.google.redirectUri;
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+      clientId
+    )}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=code&scope=${encodeURIComponent(
+      'openid email profile'
+    )}&access_type=offline&prompt=select_account`;
+
+    return { url, clientId };
+  }
+
+  /**
    * Authenticates or creates an account via Google
    */
   async googleAuth(data: GoogleAuthDTO): Promise<AuthResult> {
@@ -97,6 +117,49 @@ export class AuthService {
     let verifiedName = data.name?.trim();
     let verifiedAvatar = data.avatar?.trim();
 
+    // 1. Exchange authorization code if provided
+    if (data.code) {
+      try {
+        const tokenParams = new URLSearchParams({
+          code: data.code,
+          client_id: config.google.clientId,
+          client_secret: config.google.clientSecret,
+          redirect_uri: data.redirectUri || config.google.redirectUri,
+          grant_type: 'authorization_code',
+        });
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: tokenParams.toString(),
+        });
+
+        if (tokenRes.ok) {
+          const tokenData: any = await tokenRes.json();
+          if (tokenData.access_token) {
+            const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${tokenData.access_token}` },
+            });
+            if (userinfoRes.ok) {
+              const profile: any = await userinfoRes.json();
+              if (profile.email) {
+                const userEmail = profile.email.toLowerCase().trim();
+                verifiedEmail = userEmail;
+                verifiedName = profile.name || verifiedName || userEmail.split('@')[0];
+                verifiedAvatar = profile.picture || verifiedAvatar;
+              }
+            }
+          }
+        } else {
+          const errData = await tokenRes.text();
+          console.warn('Google token exchange warning:', errData);
+        }
+      } catch (codeErr) {
+        console.warn('Google code exchange exception:', codeErr);
+      }
+    }
+
+    // 2. Verify Google id_token if provided
     if (data.idToken) {
       try {
         const response = await fetch(
