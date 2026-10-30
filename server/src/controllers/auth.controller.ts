@@ -66,6 +66,30 @@ export const login = async (
   }
 };
 
+export const googleAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await authService.googleAuth(req.body);
+
+    res.cookie(
+      'refreshToken',
+      result.refreshToken,
+      getAuthCookieOptions(7 * 24 * 60 * 60 * 1000)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Google authentication successful',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const demoLogin = async (
   _req: Request,
   res: Response,

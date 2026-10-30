@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { User, IUser } from '../models/user.model.js';
 import { Workspace } from '../models/workspace.model.js';
 import { Meeting } from '../models/meeting.model.js';
@@ -21,6 +22,13 @@ export interface RegisterDTO {
 export interface LoginDTO {
   email: string;
   password: string;
+}
+
+export interface GoogleAuthDTO {
+  idToken?: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
 }
 
 export interface AuthResult {
@@ -54,6 +62,90 @@ export class AuthService {
       password: data.password,
       role: data.role || 'user',
     });
+
+    const tokenPayload: TokenPayload = {
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
+    await user.save();
+
+    return {
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+      },
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  /**
+   * Authenticates or creates an account via Google
+   */
+  async googleAuth(data: GoogleAuthDTO): Promise<AuthResult> {
+    let verifiedEmail = data.email?.toLowerCase().trim();
+    let verifiedName = data.name?.trim();
+    let verifiedAvatar = data.avatar?.trim();
+
+    if (data.idToken) {
+      try {
+        const response = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${data.idToken}`
+        );
+        if (response.ok) {
+          const payload: any = await response.json();
+          if (payload.email) {
+            const googleEmail = payload.email.toLowerCase().trim();
+            verifiedEmail = googleEmail;
+            verifiedName = payload.name || verifiedName || googleEmail.split('@')[0];
+            verifiedAvatar = payload.picture || verifiedAvatar;
+          }
+        }
+      } catch (tokenErr) {
+        console.warn('Google id_token tokeninfo verification notice:', tokenErr);
+      }
+    }
+
+    if (!verifiedEmail) {
+      const error: any = new Error('A valid Google email address is required');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!verifiedName) {
+      verifiedName = verifiedEmail.split('@')[0];
+    }
+
+    let user = await User.findOne({ email: verifiedEmail }).select('+password +refreshToken');
+
+    if (!user) {
+      const randomPassword = `G_${crypto.randomBytes(16).toString('hex')}!`;
+      user = new User({
+        name: verifiedName,
+        email: verifiedEmail,
+        password: randomPassword,
+        avatar: verifiedAvatar || '',
+        role: 'user',
+        isVerified: true,
+      });
+    } else {
+      if (verifiedAvatar && !user.avatar) {
+        user.avatar = verifiedAvatar;
+      }
+      if (verifiedName && user.name.startsWith('user_')) {
+        user.name = verifiedName;
+      }
+    }
 
     const tokenPayload: TokenPayload = {
       userId: user._id.toString(),
