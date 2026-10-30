@@ -13,6 +13,12 @@ import {
 } from 'lucide-react';
 import { TranscriptSegment } from '../../types/transcript.types';
 import { useAuth } from '../../context/AuthContext';
+import {
+  downloadMeetingAsTxt,
+  downloadMeetingAsMd,
+  downloadMeetingAsPdf,
+  MeetingExportData,
+} from '../../utils/exportMeeting';
 
 export interface TranscriptPanelProps {
   isOpen: boolean;
@@ -34,6 +40,7 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom as new segments arrive
@@ -51,6 +58,15 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
       seg.speaker.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getExportData = (): MeetingExportData => {
+    return {
+      title: 'Meeting Live Transcript',
+      roomId: 'Live-Session',
+      date: new Date().toLocaleString(),
+      segments,
+    };
+  };
+
   const handleCopyTranscript = () => {
     if (segments.length === 0) return;
     const text = segments
@@ -65,22 +81,19 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadTranscript = () => {
-    if (segments.length === 0) return;
-    const text = segments
-      .map(
-        (s) =>
-          `[${new Date(s.timestamp).toLocaleTimeString()}] ${s.speaker.name}: ${s.text}`
-      )
-      .join('\n\n');
+  const handleDownloadTxt = () => {
+    setIsDownloadMenuOpen(false);
+    downloadMeetingAsTxt(getExportData());
+  };
 
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `meeting-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadMd = () => {
+    setIsDownloadMenuOpen(false);
+    downloadMeetingAsMd(getExportData());
+  };
+
+  const handleDownloadPdf = () => {
+    setIsDownloadMenuOpen(false);
+    downloadMeetingAsPdf(getExportData());
   };
 
   return (
@@ -151,14 +164,50 @@ export const TranscriptPanel: React.FC<TranscriptPanelProps> = ({
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
           </button>
 
-          <button
-            onClick={handleDownloadTranscript}
-            disabled={segments.length === 0}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:pointer-events-none"
-            title="Download transcript (.txt)"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsDownloadMenuOpen((prev) => !prev)}
+              disabled={segments.length === 0}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              title="Download transcript as PDF, Markdown, or Text"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+
+            {isDownloadMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsDownloadMenuOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-[#0c1017] border border-slate-700/80 shadow-2xl z-50 p-1.5 space-y-1">
+                  <button
+                    onClick={handleDownloadPdf}
+                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-800/80 transition-colors flex items-center space-x-2 text-xs text-slate-200"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-rose-400" />
+                    <span>PDF Document (.pdf)</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadMd}
+                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-800/80 transition-colors flex items-center space-x-2 text-xs text-slate-200"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-brand-400" />
+                    <span>Markdown (.md)</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadTxt}
+                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-800/80 transition-colors flex items-center space-x-2 text-xs text-slate-200"
+                  >
+                    <Download className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Plain Text (.txt)</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           {onClearTranscript && segments.length > 0 && (
             <button

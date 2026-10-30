@@ -12,7 +12,25 @@ import { ChatPanel } from '../components/meeting/ChatPanel';
 import { TranscriptPanel } from '../components/meeting/TranscriptPanel';
 import { useMeetingTranscription } from '../hooks/useMeetingTranscription';
 import { useMeetingUiStore } from '../stores/meetingUiStore';
-import { Copy, Check, Clock, Monitor, Sparkles, PhoneOff, ArrowLeft, Circle, Download } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  Clock,
+  Monitor,
+  Sparkles,
+  PhoneOff,
+  ArrowLeft,
+  Circle,
+  Download,
+  Video,
+  FileText,
+} from 'lucide-react';
+import {
+  downloadMeetingAsTxt,
+  downloadMeetingAsMd,
+  downloadMeetingAsPdf,
+  MeetingExportData,
+} from '../utils/exportMeeting';
 
 export const MeetingRoomPage: React.FC = () => {
   const { roomId = '' } = useParams<{ roomId: string }>();
@@ -118,35 +136,23 @@ export const MeetingRoomPage: React.FC = () => {
     isRecording,
     recordingSeconds,
     hasRecordedAudio,
+    hasRecordedVideo,
     toggleTranscription,
     toggleRecording,
     stopAudioCapture,
     clearTranscript,
     downloadAudioRecording,
+    downloadVideoRecording,
   } = useMeetingTranscription(roomId, localStream, isAudioMuted);
 
-  const handleDownloadTranscriptNotes = () => {
-    let content = `# ${meetingTitle} (${roomId})\n\n`;
-    content += `**Host:** ${meetingData?.host?.name || 'Host'}  \n`;
-    content += `**Date:** ${new Date().toLocaleString()}  \n`;
-    content += `**Status:** Completed  \n\n`;
-    content += `---\n\n## Meeting Transcript\n\n`;
-    if (segments.length === 0) {
-      content += `*No transcript segments recorded for this meeting session.*\n`;
-    } else {
-      segments.forEach((seg) => {
-        const time = seg.timestamp ? `[${new Date(seg.timestamp).toLocaleTimeString()}] ` : '';
-        content += `${time}**${seg.speaker?.name || 'Speaker'}:** ${seg.text}\n\n`;
-      });
-    }
-
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${meetingTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_transcript.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const getMeetingExportData = (): MeetingExportData => {
+    return {
+      title: meetingTitle || `Meeting ${roomId}`,
+      roomId,
+      hostName: meetingData?.host?.name || 'Meeting Host',
+      date: new Date().toLocaleString(),
+      segments,
+    };
   };
 
   const handleCopyCode = () => {
@@ -306,6 +312,7 @@ export const MeetingRoomPage: React.FC = () => {
 
           {/* Action Navigation Buttons */}
           <div className="w-full space-y-3">
+            {/* Post Meeting Dashboard Link */}
             <Link
               to={`/meetings/${roomId}/dashboard`}
               className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
@@ -314,6 +321,19 @@ export const MeetingRoomPage: React.FC = () => {
               <span>View Post-Meeting Dashboard & Summary</span>
             </Link>
 
+            {/* Video Recording Download */}
+            {hasRecordedVideo && (
+              <button
+                type="button"
+                onClick={() => downloadVideoRecording()}
+                className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-indigo-600/30 to-violet-600/30 hover:from-indigo-600/40 hover:to-violet-600/40 text-indigo-200 hover:text-white font-semibold text-sm border border-indigo-500/40 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
+              >
+                <Video className="w-4 h-4 text-indigo-400" />
+                <span>Download Meeting Video (.webm)</span>
+              </button>
+            )}
+
+            {/* Audio Recording Download */}
             {hasRecordedAudio && (
               <button
                 type="button"
@@ -325,14 +345,43 @@ export const MeetingRoomPage: React.FC = () => {
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={handleDownloadTranscriptNotes}
-              className="w-full py-3 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white font-medium text-sm border border-white/10 flex items-center justify-center space-x-2 transition-colors"
-            >
-              <Download className="w-4 h-4 text-brand-400" />
-              <span>Download Meeting Notes & Transcript (.md)</span>
-            </button>
+            {/* Notes & Transcript Downloads: TXT, PDF, .MD */}
+            <div className="pt-2 border-t border-white/10 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">
+                Download Meeting Notes & Transcript
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadMeetingAsPdf(getMeetingExportData())}
+                  className="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-200 hover:text-rose-300 font-medium text-xs border border-white/10 hover:border-rose-500/30 flex flex-col items-center justify-center space-y-1 transition-colors group"
+                  title="Download as formatted PDF document"
+                >
+                  <FileText className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold">PDF (.pdf)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => downloadMeetingAsMd(getMeetingExportData())}
+                  className="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-brand-500/20 text-slate-200 hover:text-brand-300 font-medium text-xs border border-white/10 hover:border-brand-500/30 flex flex-col items-center justify-center space-y-1 transition-colors group"
+                  title="Download as Markdown document"
+                >
+                  <FileText className="w-4 h-4 text-brand-400 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold">Docs (.md)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => downloadMeetingAsTxt(getMeetingExportData())}
+                  className="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-indigo-500/20 text-slate-200 hover:text-indigo-300 font-medium text-xs border border-white/10 hover:border-indigo-500/30 flex flex-col items-center justify-center space-y-1 transition-colors group"
+                  title="Download as Plain Text file"
+                >
+                  <Download className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold">Text (.txt)</span>
+                </button>
+              </div>
+            </div>
 
             <Link
               to="/meetings"

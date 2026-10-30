@@ -172,15 +172,15 @@ export const NotificationDropdown: React.FC = () => {
         )}
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu - 100% Opaque Solid Card (No transparency or glass bleed) */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-3xl glass-panel border border-white/10 shadow-2xl z-50 overflow-hidden animate-fade-in backdrop-blur-xl">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[#0c1017] border border-slate-700/80 shadow-2xl z-50 overflow-hidden animate-fade-in text-white">
           {/* Header */}
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+          <div className="p-4 bg-[#111622] border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-bold text-white">Notifications</span>
+              <span className="text-sm font-bold text-white tracking-wide">Notifications</span>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[10px] font-bold">
                   {unreadCount} new
                 </span>
               )}
@@ -199,10 +199,10 @@ export const NotificationDropdown: React.FC = () => {
           </div>
 
           {/* List */}
-          <div className="max-h-96 overflow-y-auto divide-y divide-white/5">
+          <div className="max-h-96 overflow-y-auto divide-y divide-slate-800/80 bg-[#0c1017]">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 space-y-2">
-                <Bell className="w-8 h-8 mx-auto opacity-30" />
+              <div className="p-8 text-center text-slate-400 space-y-2 bg-[#0c1017]">
+                <Bell className="w-8 h-8 mx-auto opacity-30 text-slate-500" />
                 <p className="text-xs">No notifications yet</p>
               </div>
             ) : (
@@ -210,11 +210,11 @@ export const NotificationDropdown: React.FC = () => {
                 <div
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
-                  className={`p-3.5 flex items-start space-x-3 cursor-pointer transition-colors hover:bg-white/5 relative group ${
-                    !notif.read ? 'bg-brand-500/[0.04]' : ''
+                  className={`p-3.5 flex items-start space-x-3 cursor-pointer transition-colors hover:bg-[#151c2d] relative group ${
+                    !notif.read ? 'bg-[#121826]' : 'bg-[#0c1017]'
                   }`}
                 >
-                  <div className="p-2 rounded-xl bg-white/5 shrink-0 mt-0.5 border border-white/5">
+                  <div className="p-2 rounded-xl bg-slate-800/80 shrink-0 mt-0.5 border border-slate-700/60 text-slate-300">
                     {getNotificationIcon(notif.type)}
                   </div>
 
@@ -222,17 +222,17 @@ export const NotificationDropdown: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h4
                         className={`text-xs font-semibold leading-snug truncate ${
-                          !notif.read ? 'text-white font-bold' : 'text-slate-300'
+                          !notif.read ? 'text-white font-bold' : 'text-slate-200'
                         }`}
                       >
                         {notif.title}
                       </h4>
-                      <span className="text-[10px] text-slate-500 shrink-0 ml-2 font-mono">
+                      <span className="text-[10px] text-slate-400 shrink-0 ml-2 font-mono">
                         {formatTimeAgo(notif.createdAt)}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
                       {notif.message}
                     </p>
 
@@ -246,12 +246,12 @@ export const NotificationDropdown: React.FC = () => {
 
                   <div className="flex flex-col items-center space-y-2 shrink-0">
                     {!notif.read && (
-                      <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0 shadow-sm shadow-brand-400" />
                     )}
                     <button
                       type="button"
                       onClick={(e) => handleDelete(e, notif.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-opacity rounded hover:bg-rose-500/10"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-400 transition-opacity rounded hover:bg-rose-500/10"
                       title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

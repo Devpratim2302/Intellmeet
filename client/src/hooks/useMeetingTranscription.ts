@@ -14,9 +14,12 @@ export const useMeetingTranscription = (
   const [providerName, setProviderName] = useState<string>('mock');
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
   const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
+  const [hasRecordedVideo, setHasRecordedVideo] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedAudioChunksRef = useRef<Blob[]>([]);
+  const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedVideoChunksRef = useRef<Blob[]>([]);
   const speechRecognitionRef = useRef<any>(null);
   const isTranscribingRef = useRef<boolean>(false);
   const isAudioMutedRef = useRef<boolean>(isAudioMuted);
@@ -190,6 +193,59 @@ export const useMeetingTranscription = (
       recorder.start(4000);
       console.log('[useMeetingTranscription] MediaRecorder audio capture started');
 
+      // 2. Start Video Recorder (capturing local camera/screen video track + audio)
+      try {
+        const videoTracks = localStream.getVideoTracks();
+        let videoStreamToRecord: MediaStream;
+
+        if (videoTracks.length > 0) {
+          videoStreamToRecord = new MediaStream([...videoTracks, ...audioTracks]);
+        } else {
+          // If camera is currently off, create a clean 720p video canvas track so recording produces a valid video file
+          const canvas = document.createElement('canvas');
+          canvas.width = 1280;
+          canvas.height = 720;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, 1280, 720);
+            ctx.fillStyle = '#6366f1';
+            ctx.font = 'bold 36px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('IntellMeet Meeting Recording', 640, 320);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '22px sans-serif';
+            ctx.fillText(`Room: ${roomId}`, 640, 380);
+          }
+          const canvasStream = canvas.captureStream(15);
+          videoStreamToRecord = new MediaStream([canvasStream.getVideoTracks()[0], ...audioTracks]);
+        }
+
+        const supportedVideoMime = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm',
+          'video/mp4',
+        ].find((type) => MediaRecorder.isTypeSupported(type)) || '';
+
+        const vRecorderOptions: MediaRecorderOptions = supportedVideoMime ? { mimeType: supportedVideoMime } : {};
+        const vRecorder = new MediaRecorder(videoStreamToRecord, vRecorderOptions);
+        videoRecorderRef.current = vRecorder;
+        recordedVideoChunksRef.current = [];
+
+        vRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0 && isTranscribingRef.current) {
+            recordedVideoChunksRef.current.push(event.data);
+            setHasRecordedVideo(true);
+          }
+        };
+
+        vRecorder.start(1000);
+        console.log('[useMeetingTranscription] MediaRecorder video capture started');
+      } catch (vErr) {
+        console.warn('[useMeetingTranscription] Video recorder notice:', vErr);
+      }
+
       // In addition, if Web Speech API is supported, run it for immediate speech segment detection
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -263,6 +319,18 @@ export const useMeetingTranscription = (
       mediaRecorderRef.current = null;
     }
 
+    if (videoRecorderRef.current && videoRecorderRef.current.state !== 'inactive') {
+      try {
+        if (videoRecorderRef.current.state === 'recording') {
+          videoRecorderRef.current.requestData();
+        }
+        videoRecorderRef.current.stop();
+      } catch {
+        // ignore stop error if already inactive
+      }
+      videoRecorderRef.current = null;
+    }
+
     if (speechRecognitionRef.current) {
       try {
         speechRecognitionRef.current.stop();
@@ -323,12 +391,28 @@ export const useMeetingTranscription = (
     return true;
   }, [roomId]);
 
+  /**
+   * Download the recorded video file (video + audio) captured during call
+   */
+  const downloadVideoRecording = useCallback((filename?: string) => {
+    if (recordedVideoChunksRef.current.length === 0) return false;
+    const blob = new Blob(recordedVideoChunksRef.current, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `meeting-video-${roomId}-${new Date().toISOString().slice(0, 10)}.webm`;
+    a.click();
+    URL.revokeObjectURL(url);
+    return true;
+  }, [roomId]);
+
   return {
     segments,
     isTranscribing,
     isRecording: isTranscribing,
     recordingSeconds,
     hasRecordedAudio,
+    hasRecordedVideo,
     providerName,
     isLoadingHistory,
     startAudioCapture,
@@ -337,5 +421,6 @@ export const useMeetingTranscription = (
     toggleRecording: toggleTranscription,
     clearTranscript,
     downloadAudioRecording,
+    downloadVideoRecording,
   };
 };
