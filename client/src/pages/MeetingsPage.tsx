@@ -129,8 +129,7 @@ export const MeetingsPage: React.FC = () => {
             Meeting Rooms
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Create real-time rooms, manage schedules, and establish WebRTC peer
-            connections.
+            Create real-time rooms, manage schedules, and establish peer connections.
           </p>
         </div>
 
@@ -162,7 +161,7 @@ export const MeetingsPage: React.FC = () => {
             Join with Code
           </h2>
           <p className="text-xs text-slate-400 mb-4">
-            Enter a room identifier to connect directly to the WebRTC signaling session.
+            Enter the room to connect to the session.
           </p>
           <form onSubmit={handleQuickJoin} className="space-y-3">
             <input
@@ -192,13 +191,10 @@ export const MeetingsPage: React.FC = () => {
 
         {/* Create Meeting Panel */}
         <div className="glass-panel p-6 rounded-2xl border border-white/10 md:col-span-2">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-2">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
             <Plus className="w-4 h-4 text-indigo-400" />
             Instant Room Setup
           </h2>
-          <p className="text-xs text-slate-400 mb-4">
-            Create an ad-hoc or scheduled meeting room to test audio/video peer exchange.
-          </p>
           <form
             onSubmit={handleCreateMeeting}
             className="grid grid-cols-1 sm:grid-cols-2 gap-4"
@@ -210,7 +206,7 @@ export const MeetingsPage: React.FC = () => {
               <input
                 type="text"
                 required
-                placeholder="e.g. Daily Standup or WebRTC Peer Test"
+                placeholder="e.g. Daily Standup or Sprint Sync"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-4 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none"
@@ -266,13 +262,9 @@ export const MeetingsPage: React.FC = () => {
         ) : meetings.length === 0 ? (
           <div className="glass-panel p-10 rounded-2xl border border-white/10 text-center">
             <Video className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-white mb-1">
+            <h3 className="text-base font-semibold text-white mb-4">
               No meetings created yet
             </h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-              Click "New Meeting" above to start an instant collaboration room and test
-              WebRTC peer connections.
-            </p>
             <Link
               to="/meetings/create"
               className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-glow-brand transition-all transform hover:-translate-y-0.5"
