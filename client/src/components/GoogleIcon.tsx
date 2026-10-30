@@ -26,3 +26,4 @@ export const GoogleIcon: React.FC<GoogleIconProps> = ({ className = 'w-5 h-5' })
     </svg>
   );
 };
+

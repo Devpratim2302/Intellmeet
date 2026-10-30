@@ -11,11 +11,10 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  X,
-  ArrowRight,
 } from 'lucide-react';
 import { IntellMeetLogo } from '../components/IntellMeetLogo';
 import { GoogleIcon } from '../components/GoogleIcon';
+import { GoogleAccountChooserModal, GoogleAccount } from '../components/GoogleAccountChooserModal';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -26,8 +25,6 @@ export const RegisterPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [googleName, setGoogleName] = useState('');
 
   const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -79,36 +76,30 @@ export const RegisterPage: React.FC = () => {
         (window as any).google.accounts.id.prompt();
         return;
       } catch {
-        // Fall back to modal dialog
+        // Fall back to account chooser modal
       }
     }
-    setGoogleEmail(email || '');
-    setGoogleName(name || '');
     setShowGoogleModal(true);
   };
 
-  const handleGoogleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!googleEmail.trim()) {
-      setError('Please provide a valid Google email address.');
-      return;
-    }
-
+  const handleSelectGoogleAccount = async (account: GoogleAccount) => {
     setIsGoogleSubmitting(true);
     setError(null);
 
     try {
       await loginWithGoogle({
-        email: googleEmail.trim(),
-        name: googleName.trim() || googleEmail.split('@')[0],
+        email: account.email,
+        name: account.name,
+        avatar: account.avatar,
       });
       setShowGoogleModal(false);
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const msg =
         err.response?.data?.message ||
-        'Google sign up failed. Please check your information.';
+        'Google sign up failed. Please try again.';
       setError(msg);
+      throw err;
     } finally {
       setIsGoogleSubmitting(false);
     }
@@ -292,85 +283,13 @@ export const RegisterPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Google Account Modal (for fast Google Signup & verification) */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-sm glass-panel p-6 rounded-3xl border border-white/10 shadow-2xl relative">
-            <button
-              onClick={() => setShowGoogleModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <GoogleIcon className="w-6 h-6" />
-              </div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                Sign up with Google
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Enter your Google account details to create an account
-              </p>
-            </div>
-
-            <form onSubmit={handleGoogleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={googleName}
-                    onChange={(e) => setGoogleName(e.target.value)}
-                    placeholder="e.g. Alex Johnson"
-                    className="w-full pl-10 pr-4 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Google Email Address *
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="email"
-                    required
-                    value={googleEmail}
-                    onChange={(e) => setGoogleEmail(e.target.value)}
-                    placeholder="alex@gmail.com"
-                    className="w-full pl-10 pr-4 py-2 bg-dark-900/80 border border-white/10 focus:border-brand-500 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isGoogleSubmitting}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs flex items-center justify-center space-x-2 shadow-glow-brand transition-all disabled:opacity-50 cursor-pointer"
-              >
-                {isGoogleSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Connecting Google...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Continue with Google</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Google Account Chooser Modal (choose account and just login) */}
+      <GoogleAccountChooserModal
+        isOpen={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        onSelectAccount={handleSelectGoogleAccount}
+        isSubmitting={isGoogleSubmitting}
+      />
     </div>
   );
 };
