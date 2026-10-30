@@ -8,7 +8,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { GoogleCallbackPage } from './pages/GoogleCallbackPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { MeetingsPage } from './pages/MeetingsPage';
 import { CreateMeetingPage } from './pages/CreateMeetingPage';
@@ -41,7 +40,6 @@ export const App: React.FC = () => {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
                 <Route path="/demo" element={<HomePage autoOpenDemo={true} />} />
 
                 {/* Protected Routes */}

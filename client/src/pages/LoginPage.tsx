@@ -3,8 +3,6 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { IntellMeetLogo } from '../components/IntellMeetLogo';
-import { GoogleIcon } from '../components/GoogleIcon';
-import { GoogleAccountChooserModal, GoogleAccount } from '../components/GoogleAccountChooserModal';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,10 +11,8 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
-  const { login, loginDemo, loginWithGoogle } = useAuth();
+  const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -34,34 +30,6 @@ export const LoginPage: React.FC = () => {
       fillDemoCredentials();
     }
   }, [searchParams]);
-
-  const handleGoogleClick = () => {
-    setError(null);
-    setShowGoogleModal(true);
-  };
-
-  const handleSelectGoogleAccount = async (account: GoogleAccount) => {
-    setIsGoogleSubmitting(true);
-    setError(null);
-
-    try {
-      await loginWithGoogle({
-        email: account.email,
-        name: account.name,
-        avatar: account.avatar,
-      });
-      setShowGoogleModal(false);
-      navigate(from, { replace: true });
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        'Google sign in failed. Please verify your details.';
-      setError(msg);
-      throw err;
-    } finally {
-      setIsGoogleSubmitting(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +70,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Demo Toggle Button */}
-        <div className="mb-4 flex items-center justify-center">
+        <div className="mb-6 flex items-center justify-center">
           <button
             type="button"
             onClick={fillDemoCredentials}
@@ -114,34 +82,6 @@ export const LoginPage: React.FC = () => {
           >
             {isDemoMode ? '✓ Demo Details Filled' : 'Click for Demo Details'}
           </button>
-        </div>
-
-        {/* Sign in with Google */}
-        <button
-          id="google-login-btn"
-          type="button"
-          onClick={handleGoogleClick}
-          disabled={isGoogleSubmitting || isSubmitting}
-          className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold text-sm flex items-center justify-center space-x-3 transition-all hover:border-white/20 shadow-sm disabled:opacity-50 group hover:-translate-y-0.5 cursor-pointer mb-6"
-        >
-          {isGoogleSubmitting ? (
-            <Loader2 className="w-5 h-5 animate-spin text-brand-400" />
-          ) : (
-            <GoogleIcon className="w-5 h-5 shrink-0 group-hover:scale-105 transition-transform" />
-          )}
-          <span>Sign in with Google</span>
-        </button>
-
-        {/* Divider */}
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-dark-900 px-3 text-slate-400 font-semibold tracking-wider">
-              Or sign in with email
-            </span>
-          </div>
         </div>
 
         {error && (
@@ -245,14 +185,6 @@ export const LoginPage: React.FC = () => {
           </Link>
         </div>
       </div>
-
-      {/* Google Account Chooser Modal (choose account and just login) */}
-      <GoogleAccountChooserModal
-        isOpen={showGoogleModal}
-        onClose={() => setShowGoogleModal(false)}
-        onSelectAccount={handleSelectGoogleAccount}
-        isSubmitting={isGoogleSubmitting}
-      />
     </div>
   );
 };

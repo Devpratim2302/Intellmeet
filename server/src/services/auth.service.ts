@@ -1,6 +1,4 @@
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import { config } from '../config/env.js';
 import { User, IUser } from '../models/user.model.js';
 import { Workspace } from '../models/workspace.model.js';
 import { Meeting } from '../models/meeting.model.js';
@@ -23,15 +21,6 @@ export interface RegisterDTO {
 export interface LoginDTO {
   email: string;
   password: string;
-}
-
-export interface GoogleAuthDTO {
-  idToken?: string;
-  code?: string;
-  redirectUri?: string;
-  email?: string;
-  name?: string;
-  avatar?: string;
 }
 
 export interface AuthResult {
@@ -65,150 +54,6 @@ export class AuthService {
       password: data.password,
       role: data.role || 'user',
     });
-
-    const tokenPayload: TokenPayload = {
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = generateAccessToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
-
-    user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    await user.save();
-
-    return {
-      user: {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        createdAt: user.createdAt,
-      },
-      accessToken,
-      refreshToken,
-    };
-  }
-
-  /**
-   * Generates Google OAuth authorization URL with account chooser
-   */
-  getGoogleAuthUrl(customRedirectUri?: string): { url: string; clientId: string } {
-    const clientId = config.google.clientId;
-    const redirectUri = customRedirectUri || config.google.redirectUri;
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
-      clientId
-    )}&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}&response_type=code&scope=${encodeURIComponent(
-      'openid email profile'
-    )}&access_type=offline&prompt=select_account`;
-
-    return { url, clientId };
-  }
-
-  /**
-   * Authenticates or creates an account via Google
-   */
-  async googleAuth(data: GoogleAuthDTO): Promise<AuthResult> {
-    let verifiedEmail = data.email?.toLowerCase().trim();
-    let verifiedName = data.name?.trim();
-    let verifiedAvatar = data.avatar?.trim();
-
-    // 1. Exchange authorization code if provided
-    if (data.code) {
-      try {
-        const tokenParams = new URLSearchParams({
-          code: data.code,
-          client_id: config.google.clientId,
-          client_secret: config.google.clientSecret,
-          redirect_uri: data.redirectUri || config.google.redirectUri,
-          grant_type: 'authorization_code',
-        });
-
-        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: tokenParams.toString(),
-        });
-
-        if (tokenRes.ok) {
-          const tokenData: any = await tokenRes.json();
-          if (tokenData.access_token) {
-            const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: { Authorization: `Bearer ${tokenData.access_token}` },
-            });
-            if (userinfoRes.ok) {
-              const profile: any = await userinfoRes.json();
-              if (profile.email) {
-                const userEmail = profile.email.toLowerCase().trim();
-                verifiedEmail = userEmail;
-                verifiedName = profile.name || verifiedName || userEmail.split('@')[0];
-                verifiedAvatar = profile.picture || verifiedAvatar;
-              }
-            }
-          }
-        } else {
-          const errData = await tokenRes.text();
-          console.warn('Google token exchange warning:', errData);
-        }
-      } catch (codeErr) {
-        console.warn('Google code exchange exception:', codeErr);
-      }
-    }
-
-    // 2. Verify Google id_token if provided
-    if (data.idToken) {
-      try {
-        const response = await fetch(
-          `https://oauth2.googleapis.com/tokeninfo?id_token=${data.idToken}`
-        );
-        if (response.ok) {
-          const payload: any = await response.json();
-          if (payload.email) {
-            const googleEmail = payload.email.toLowerCase().trim();
-            verifiedEmail = googleEmail;
-            verifiedName = payload.name || verifiedName || googleEmail.split('@')[0];
-            verifiedAvatar = payload.picture || verifiedAvatar;
-          }
-        }
-      } catch (tokenErr) {
-        console.warn('Google id_token tokeninfo verification notice:', tokenErr);
-      }
-    }
-
-    if (!verifiedEmail) {
-      const error: any = new Error('A valid Google email address is required');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (!verifiedName) {
-      verifiedName = verifiedEmail.split('@')[0];
-    }
-
-    let user = await User.findOne({ email: verifiedEmail }).select('+password +refreshToken');
-
-    if (!user) {
-      const randomPassword = `G_${crypto.randomBytes(16).toString('hex')}!`;
-      user = new User({
-        name: verifiedName,
-        email: verifiedEmail,
-        password: randomPassword,
-        avatar: verifiedAvatar || '',
-        role: 'user',
-        isVerified: true,
-      });
-    } else {
-      if (verifiedAvatar && !user.avatar) {
-        user.avatar = verifiedAvatar;
-      }
-      if (verifiedName && user.name.startsWith('user_')) {
-        user.name = verifiedName;
-      }
-    }
 
     const tokenPayload: TokenPayload = {
       userId: user._id.toString(),

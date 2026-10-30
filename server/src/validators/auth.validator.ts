@@ -35,15 +35,6 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().optional(),
 });
 
-export const googleAuthSchema = z.object({
-  idToken: z.string().optional(),
-  code: z.string().optional(),
-  redirectUri: z.string().optional(),
-  email: z.string().email('Invalid email address').optional(),
-  name: z.string().optional(),
-  avatar: z.string().optional(),
-});
-
 export const validateRequest = (schema: z.ZodSchema) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

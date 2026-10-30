@@ -16,7 +16,6 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   loginDemo: () => Promise<void>;
-  loginWithGoogle: (data: { idToken?: string; email?: string; name?: string; avatar?: string }) => Promise<void>;
   logout: () => Promise<void>;
   uploadAvatar: (file: File) => Promise<User>;
   deleteAvatar: () => Promise<User>;
@@ -160,28 +159,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async (googleData: {
-    idToken?: string;
-    email?: string;
-    name?: string;
-    avatar?: string;
-  }) => {
-    const response = await api.post<AuthResponse>('/auth/google', googleData);
-    const { user: rawUser, accessToken, refreshToken } = response.data.data;
-    const authUser = sanitizeUser(rawUser);
-
-    setUser(authUser);
-    setToken(accessToken);
-    localStorage.setItem('intellmeet_token', accessToken);
-    if (refreshToken) {
-      localStorage.setItem('intellmeet_refresh_token', refreshToken);
-    }
-    if (authUser) {
-      localStorage.setItem('intellmeet_user', JSON.stringify(authUser));
-    }
-    socketService.connect();
-  };
-
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -227,7 +204,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         loginDemo,
-        loginWithGoogle,
         logout,
         uploadAvatar,
         deleteAvatar,

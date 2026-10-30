@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -13,8 +13,6 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { IntellMeetLogo } from '../components/IntellMeetLogo';
-import { GoogleIcon } from '../components/GoogleIcon';
-import { GoogleAccountChooserModal, GoogleAccount } from '../components/GoogleAccountChooserModal';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -23,87 +21,9 @@ export const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
-  const { register, loginWithGoogle } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
-
-  // If VITE_GOOGLE_CLIENT_ID is configured, initialize Google Identity Services SDK
-  useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      if ((window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response: any) => {
-            if (response.credential) {
-              try {
-                setIsGoogleSubmitting(true);
-                setError(null);
-                await loginWithGoogle({ idToken: response.credential });
-                navigate('/dashboard', { replace: true });
-              } catch (err: any) {
-                setError(err.response?.data?.message || 'Google registration failed.');
-              } finally {
-                setIsGoogleSubmitting(false);
-              }
-            }
-          },
-        });
-      }
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, [loginWithGoogle, navigate]);
-
-  const handleGoogleClick = () => {
-    setError(null);
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (clientId && (window as any).google?.accounts?.id) {
-      try {
-        (window as any).google.accounts.id.prompt();
-        return;
-      } catch {
-        // Fall back to account chooser modal
-      }
-    }
-    setShowGoogleModal(true);
-  };
-
-  const handleSelectGoogleAccount = async (account: GoogleAccount) => {
-    setIsGoogleSubmitting(true);
-    setError(null);
-
-    try {
-      await loginWithGoogle({
-        email: account.email,
-        name: account.name,
-        avatar: account.avatar,
-      });
-      setShowGoogleModal(false);
-      navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        'Google sign up failed. Please try again.';
-      setError(msg);
-      throw err;
-    } finally {
-      setIsGoogleSubmitting(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +56,7 @@ export const RegisterPage: React.FC = () => {
       <div className="absolute w-[500px] h-[500px] bg-indigo-500/10 blur-[140px] rounded-full pointer-events-none -z-10" />
 
       <div className="w-full max-w-md glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl relative">
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
           <IntellMeetLogo className="w-14 h-14 rounded-2xl shadow-xl shadow-blue-500/25 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Create an Account
@@ -152,34 +72,6 @@ export const RegisterPage: React.FC = () => {
             <span>{error}</span>
           </div>
         )}
-
-        {/* Sign Up with Google Button */}
-        <button
-          id="google-signup-btn"
-          type="button"
-          onClick={handleGoogleClick}
-          disabled={isGoogleSubmitting || isSubmitting}
-          className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold text-sm flex items-center justify-center space-x-3 transition-all hover:border-white/20 shadow-sm disabled:opacity-50 group hover:-translate-y-0.5 cursor-pointer"
-        >
-          {isGoogleSubmitting ? (
-            <Loader2 className="w-5 h-5 animate-spin text-brand-400" />
-          ) : (
-            <GoogleIcon className="w-5 h-5 shrink-0 group-hover:scale-105 transition-transform" />
-          )}
-          <span>Sign up with Google</span>
-        </button>
-
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-dark-900 px-3 text-slate-400 font-semibold tracking-wider">
-              Or continue with email
-            </span>
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -282,15 +174,6 @@ export const RegisterPage: React.FC = () => {
           </Link>
         </div>
       </div>
-
-      {/* Google Account Chooser Modal (choose account and just login) */}
-      <GoogleAccountChooserModal
-        isOpen={showGoogleModal}
-        onClose={() => setShowGoogleModal(false)}
-        onSelectAccount={handleSelectGoogleAccount}
-        isSubmitting={isGoogleSubmitting}
-      />
     </div>
   );
 };
-

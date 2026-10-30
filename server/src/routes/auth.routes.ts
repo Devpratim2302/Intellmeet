@@ -2,9 +2,6 @@ import { Router } from 'express';
 import {
   register,
   login,
-  googleAuth,
-  getGoogleAuthUrl,
-  handleGoogleRedirectCallback,
   demoLogin,
   refreshToken,
   getMe,
@@ -15,7 +12,6 @@ import {
 import {
   registerSchema,
   loginSchema,
-  googleAuthSchema,
   refreshTokenSchema,
   validateRequest,
 } from '../validators/auth.validator.js';
@@ -28,9 +24,6 @@ const router = Router();
 // Public routes with rate limiting & schema validation
 router.post('/register', authLimiter, validateRequest(registerSchema), register);
 router.post('/login', authLimiter, validateRequest(loginSchema), login);
-router.get('/google/url', getGoogleAuthUrl);
-router.get('/google/callback', handleGoogleRedirectCallback);
-router.post('/google', authLimiter, validateRequest(googleAuthSchema), googleAuth);
 router.post('/demo', demoLogin);
 router.get('/demo', demoLogin);
 router.post('/refresh', validateRequest(refreshTokenSchema), refreshToken);
